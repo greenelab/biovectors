@@ -17,7 +17,7 @@ class Sentences(object):
  
     def __iter__(self):
         curr_pmid = curr_title = curr_abstract = curr_total = None
-        for line in open(self.filename):
+        for line in open(self.filename, "r"):
             if "|t|" in line:
                 curr_title = line.split("|")[2]
                 continue
@@ -60,15 +60,29 @@ def get_gene_disease_pairs(gene_disease_filename, do_mesh_filename):
     do_mesh_df = pd.read_csv(do_mesh_filename, sep="\t")
 
     # create doid-mesh list
-    do_mesh_pairs = dict(zip(do_mesh_df.doid_code, "MESH:"+do_mesh_df.mesh_id))
+    do_mesh_pairs = dict(zip(
+        do_mesh_df.doid_code, 
+        "MESH:"+do_mesh_df.mesh_id
+    ))
     gene_disease_df["mesh_id"] = gene_disease_df["doid_id"].replace(do_mesh_pairs) 
     # remove rows that don't have a DOID-MESH id mapping
-    gene_disease_df = gene_disease_df[~gene_disease_df.mesh_id.str.contains("DOID:")]
+    gene_disease_df = gene_disease_df.query("~mesh_id.str.contains('DOID:')")
+    # gene_disease_df = gene_disease_df[~gene_disease_df.mesh_id.str.contains("DOID:")]
     # get positive pairs
-    positive_pairs = gene_disease_df[["mesh_id", "entrez_gene_id"]].values.tolist()
+    positive_pairs = (
+        gene_disease_df
+        [["mesh_id", "entrez_gene_id"]]
+        .values
+        .tolist()
+    )
     
     # randomize pairings to create negative pairs
-    gene_disease_df["random_gene"] = random.sample(gene_disease_df["entrez_gene_id"].values.tolist(), len(gene_disease_df["entrez_gene_id"].values.tolist()))
+    gene_disease_df["random_gene"] = (
+        random.sample(
+            gene_disease_df["entrez_gene_id"].values.tolist(), 
+            len(gene_disease_df["entrez_gene_id"].values.tolist())
+        )
+    )
     randomized_pairs = gene_disease_df[["mesh_id", "random_gene"]].values.tolist()
     negative_pairs = []
     for pair in random.sample(randomized_pairs, len(randomized_pairs)):
@@ -95,7 +109,12 @@ def get_scores(model, pairs):
     for pair in pairs:
         if all(str(vocab) in model.wv.vocab for vocab in pair[:2]):
             score = model.wv.similarity(str(pair[0]), str(pair[1]))
-            new_row = {"disease": pair[0], "gene": pair[1], "class": pair[2], "score": score}
+            new_row = {
+                "disease": pair[0], 
+                "gene": pair[1], 
+                "class": pair[2], 
+                "score": score
+            }
             similarity_scores_df = similarity_scores_df.append(new_row, ignore_index=True)
     similarity_scores_df.to_csv("similarity_scores.tsv", sep="\t")
 
@@ -116,7 +135,10 @@ if __name__ == "__main__":
     # only need the 3 lines below to run on pmacs cluster
     sentences = Sentences(os.path.join(base, "data/testdata_pubtator_central_export.pubtator"))
     word2vec = create_word2vec(sentences)
-    pairs = get_gene_disease_pairs(os.path.join(base, "data/hetnet_gene_disease_pairs.tsv"), os.path.join(base, "data/DO-slim-to-mesh.tsv"))
+    pairs = get_gene_disease_pairs(
+        os.path.join(base, "data/hetnet_gene_disease_pairs.tsv"), 
+        os.path.join(base, "data/DO-slim-to-mesh.tsv")
+    )
     get_scores(word2vec, pairs)
 
     # roc
