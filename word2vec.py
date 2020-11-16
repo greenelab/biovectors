@@ -137,11 +137,22 @@ def dummy(scores_filename):
     scores_df = pd.read_csv(scores_filename, sep="\t")
     X = scores_df.drop(["class", "score"], 1)
     y = scores_df["class"]
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=0)
+    (
+      X_train, X_test, 
+      y_train, y_test
+     ) = train_test_split(
+           X, y, 
+           test_size=0.3, 
+           random_state=0
+        )
     model = DummyClassifier(strategy="stratified", random_state=0)
     model.fit(X_train, y_train)
     scores_df["dummy_score"] = model.predict(X)
-    scores_df.drop("score", 1).to_csv("outputs/dummy_scores.tsv", sep="\t", index=False)
+    scores_df.drop("score", 1).to_csv(
+       "outputs/dummy_scores.tsv", 
+        sep="\t", 
+        index=False
+      )
 
 
 if __name__ == "__main__":
@@ -158,5 +169,4 @@ if __name__ == "__main__":
 
     # dummy classifer
     dummy(os.path.join(base, "outputs/similarity_scores.tsv"))
-
 

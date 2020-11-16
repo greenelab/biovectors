@@ -58,7 +58,11 @@ def sort_similarity_scores(scores_df):
     Sorts similarity scores in descending order to differentiate TPs and FPs.
     @param scores_df: panda dataframe containing scores (see similarity_scores.tsv) 
     """
-    sorted_df = scores_df.sort_values(by=["score"], ascending=False).drop(scores_df.columns[:1], 1)
+    sorted_df = (
+       scores_df
+       .sort_values(by=["score"], ascending=False)
+       .drop(scores_df.columns[:1], 1)
+    )
     sorted_df.to_csv("outputs/sorted_similarity_scores.tsv", sep="\t")
 
 
@@ -85,4 +89,3 @@ if __name__ == "__main__":
     dummy_predictions = np.array(dummy_df[["dummy_score"]].values.tolist())
     
     plot_roc(labels, dummy_predictions, "Dummy")
-
