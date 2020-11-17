@@ -31,6 +31,6 @@ if __name__ == "__main__":
     df.to_csv(
         os.path.join(base, "outputs/pmids.tsv"), 
         sep="\t", 
-        index=False
+        index=False,
         compression="xz"
     )
