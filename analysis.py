@@ -8,28 +8,34 @@ import os
 import matplotlib.pyplot as plt
 
 
-def plot_roc(labels, predictions, model):
+def plot_roc(labels, predictions, dummy_predictions):
     """
     Plots ROC curve.
     @param labels: numpy array of classes
-    @param predictions: numpy array of corresponding similarity scores
+    @param predictions: numpy array of corresponding word2vec similarity scores
+    @param dummy_predictions: numpy array of corresponding dummy classifications
     """
     fp, tp, _ = roc_curve(labels, predictions)
     roc_auc = auc(fp, tp)
 
+    fp_d, tp_d, _ = roc_curve(labels, dummy_predictions)
+    roc_auc_d = auc(fp_d, tp_d)
+
     plt.figure()
-    lw = 2
     plt.plot(fp, tp, 
-             color="darkorange",
-             lw=lw, label="ROC curve (area = %0.2f)" % roc_auc)
-    plt.plot([0, 1], [0, 1], color='navy', lw=lw, linestyle='--')
+             color="darkorange", lw=2, 
+             label="Word2vec, AUC = %0.2f" % roc_auc)
+    plt.plot(fp_d, tp_d, 
+             color="navy", lw=2, 
+             label="Dummy Classifier, AUC = %0.2f" % roc_auc_d)
+    plt.plot([0, 1], [0, 1], color='black', lw=2, linestyle='--')
     plt.xlim([0.0, 1.0])
     plt.ylim([0.0, 1.05])
     plt.xlabel("False Positive Rate")
     plt.ylabel("True Positive Rate")
-    plt.title(f"{model}: Receiver Operating Characteristic")
+    plt.title(f"ROC Curve Analysis")
     plt.legend(loc="lower right")
-    plt.savefig(f"figures/roc_curve_{model}.jpg")
+    plt.savefig(f"figures/roc_curves.jpg")
 
 
 def plot_precision_recall(labels, predictions):
@@ -77,15 +83,14 @@ if __name__ == "__main__":
     labels = np.array(scores_df[["class"]].values.tolist())
     predictions = np.array(scores_df[["score"]].values.tolist())
 
-    plot_roc(labels, predictions, "Word2vec")
-    plot_precision_recall(labels, predictions)
-    sort_similarity_scores(scores_df)
-
     # dummy
     dummy_df = pd.read_csv(
         os.path.join(base, "outputs/dummy_scores.tsv"),
         sep="\t"
     )
     dummy_predictions = np.array(dummy_df[["dummy_score"]].values.tolist())
-    
-    plot_roc(labels, dummy_predictions, "Dummy")
+
+    # analysis
+    plot_roc(labels, predictions, dummy_predictions)
+    plot_precision_recall(labels, predictions)
+    sort_similarity_scores(scores_df)
