@@ -25,7 +25,7 @@ def call_entrez(pubmed_ids):
             url = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi?db=pubmed&retmode=json&id="
             responses = []
             id_str = ",".join(map(str, pubmed_ids))
-            response = requests.get(f"{url}{id_str}&api_key=691e69e351f883545c190eba28c4b792b308")
+            response = requests.get(f"{url}{id_str}")
             assert response.status_code == 200
             response = response.json()
             return response['result']
