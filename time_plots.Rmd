@@ -1,0 +1,53 @@
+---
+title: "Plotting time word2vec analysis"
+author: "Erica Suh"
+date: "12/15/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(tidyverse)
+```
+
+Read in data. 
+```{r}
+df = read.csv("outputs/decades/total_data.tsv", sep="\t")
+```
+
+Iterate through each type of cancer. Plot average word2vec similarity score over time for the top 5 genes (top 5 is determined by highest overall similarity score average). 
+```{r}
+cancer_df = df %>%
+  subset(grepl(paste("cancer", collapse = "|"), disease_name))
+
+
+for (cancer in unique(cancer_df[["disease_name"]])) {
+  curr_df = cancer_df %>%
+    subset(disease_name == cancer)
+  
+  gene_avg = curr_df %>%
+    group_by(gene_name) %>%
+    summarize(mean_score = mean(score)) %>%
+    arrange(desc(mean_score))
+  
+  top_genes = gene_avg$gene_name[1:5]
+
+  curr_df = curr_df %>%
+    subset(gene_name %in% top_genes)
+
+  ggplot(curr_df, aes(x=year, y=score, color=gene_name, group=gene_name)) +
+    geom_line(aes(linetype=factor(class))) +
+    geom_point() +
+    theme_bw() +
+    labs(title = cancer,
+         x = "decade",
+        y = "word2vec similarity score") +
+   theme(plot.title = element_text(hjust = 0.5),
+         text = element_text(size=20))
+  
+  ggsave(paste0("figures/time_plots/", cancer, ".png"), width=10, height=6, dpi=300)
+}
+```
