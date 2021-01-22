@@ -1,0 +1,7 @@
+.Rproj.user
+.Rhistory
+.RData
+.Ruserdata
+biovectors.Rproj
+__pycache__
+.DS_Store
