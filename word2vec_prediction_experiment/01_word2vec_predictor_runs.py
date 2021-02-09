@@ -27,7 +27,7 @@ import os
 
 from biovectors_modules.word2vec_run_helper import (
     get_gene_disease_pairs,
-    Sentences,
+    SentencesIterator,
     similarity_score,
 )
 # -
@@ -42,7 +42,7 @@ pairs[0:10]
 # ## Fire up word2vec
 
 # Set up the path to abstract sentences
-sentences = Sentences(Path("inputs/bioconcepts2pubtatorcentral.gz"))
+sentences = SentencesIterator(Path("inputs/bioconcepts2pubtatorcentral.gz"))
 
 model = Word2Vec(sentences, size=500, window=5, min_count=1, workers=4)
 

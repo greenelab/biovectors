@@ -18,15 +18,15 @@
 # +
 from pathlib import Path
 
+import numpy as np
+import pandas as pd
+import plotnine as p9
 from sklearn.metrics import (
     auc,
     average_precision_score,
     precision_recall_curve,
     roc_curve,
 )
-import pandas as pd
-import plotnine as p9
-import numpy as np
 # -
 
 # ## Load and Parse the performance data

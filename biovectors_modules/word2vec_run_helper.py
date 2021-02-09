@@ -4,42 +4,59 @@ import random
 import pandas as pd
 
 
-class Sentences:
+class SentencesIterator:
     """
     Extracts title + abstracts from Pubtator data. Replaces any instance of a
     gene or disease with the Entrez gene ID or MESH ID, respectively.
     """
 
-    def __init__(self, filename):
+    def __init__(self, filename, pmids=None):
         self.filename = filename
+        self.pmids = pmids
 
     def __iter__(self):
-        curr_pmid = curr_title = curr_abstract = curr_total = None
-        for line in gzip.open(self.filename, "rt"):
-            if "|t|" in line:
-                curr_title = line.split("|")[2]
-                continue
-            if "|a|" in line:
-                if curr_total is not None:
-                    yield curr_total.split()
-                curr_pmid = line.split("|")[0]
-                curr_abstract = line.split("|")[2]
-                if curr_title is not None:
-                    curr_total = (
-                        curr_title + curr_abstract
-                    )  # combine title and abstract
-                continue
-            else:
-                if curr_pmid is not None and curr_total is not None:
-                    if (
-                        "Disease" in line or "Gene" in line
-                    ):  # targeting gene-disease pairs
-                        features = line.split("\t")
-                        if features[0] == curr_pmid and features[5].strip() != "":
-                            curr_total = curr_total.replace(
-                                features[3], features[5].strip(), 1
-                            )
-        yield curr_total.split()
+        print("Getting sentences...")
+        pmid_to_check = curr_pmid = curr_title = curr_abstract = curr_total = None
+
+        for line in gzip.open(self.pubtator_filename, "rt"):
+            if "|t|" in line or "|a|" in line:
+                pmid_to_check = line.split("|")[0]
+            elif line.strip() != "":
+                pmid_to_check = line.split("\t")[0]
+
+            if pmid_to_check is not None:
+                if self.pmids is None or int(pmid_to_check) in self.pmids:
+                    if "|t|" in line:
+                        curr_title = line.split("|")[2]
+                        continue
+
+                    if "|a|" in line:
+                        if curr_total is not None:
+                            yield curr_total.split()
+                        curr_pmid = line.split("|")[0]
+                        curr_abstract = line.split("|")[2]
+                        if curr_title is not None:
+                            curr_total = (
+                                curr_title + curr_abstract
+                            )  # combine title and abstract
+                        continue
+
+                    else:
+                        if curr_pmid is not None and curr_total is not None:
+                            if (
+                                "Disease" in line or "Gene" in line
+                            ):  # targeting gene-disease pairs
+                                features = line.split("\t")
+                                if (
+                                    features[0] == curr_pmid
+                                    and features[5].strip() != ""
+                                ):
+                                    curr_total = curr_total.replace(
+                                        features[3], features[5].strip(), 1
+                                    )
+
+        if curr_total is not None:
+            yield curr_total.split()
 
 
 def get_gene_disease_pairs(gene_disease_filename, do_mesh_filename):
