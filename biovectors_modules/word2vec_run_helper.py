@@ -65,7 +65,7 @@ def get_gene_disease_pairs(gene_disease_filename, do_mesh_filename):
     @param gene_disease_filename: file containing hetionet gene disease pairs
     @param do_mesh_filename: file containing corresponding doid and mesh ids (because hetnet
         contains only doids)
-    @return gene-disease pairs
+    @return positive and negative gene-disease pairs
     """
     random.seed(100)  # reproducibility
     gene_disease_df = pd.read_csv(gene_disease_filename, sep="\t")
