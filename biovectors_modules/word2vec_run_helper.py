@@ -1,62 +1,165 @@
 import gzip
+from pathlib import Path
 import random
+import tarfile
 
+import lxml.etree as ET
 import pandas as pd
+import spacy
+
+nlp = spacy.load("en_core_web_sm")
 
 
-class SentencesIterator:
+class PubtatorTarIterator:
     """
-    Extracts title + abstracts from Pubtator data. Replaces any instance of a
-    gene or disease with the Entrez gene ID or MESH ID, respectively.
+    Accesses Abstracts and Full text without extracting batches from the
+    tar gz Pubtator Central created
     """
 
-    def __init__(self, filename, pmids=None):
-        self.filename = filename
-        self.pmids = pmids
+    def __init__(self, tarfile_name):
+        self.pubtator_tar_directory = tarfile.open(tarfile_name)
+
+    def __iter__(self):
+        # Iterate through documents within each Pubtator Batch
+        while True:
+            try:
+                pubtator_batch = self.pubtator_tar_directory.next()
+
+                if pubtator_batch is None:
+                    break
+
+                doc_iterator = ET.iterparse(
+                    self.pubtator_tar_directory.extractfile(pubtator_batch),
+                    tag="document",
+                    recover=True,
+                )
+
+                # Yield the individual document objects
+                for event, doc_obj in doc_iterator:
+                    yield doc_obj
+
+                    doc_obj.clear()
+
+            except tarfile.ReadError:
+                print("Parsing the archive reached an error. Breaking out the loop")
+                break
+
+
+class PubMedSentencesIterator:
+    """
+    Extracts title + abstracts from Pubtator data. Replaces any entity instance
+    with their respective identifier.
+    """
+
+    def __init__(
+        self,
+        pubmed_tarfiles,
+        batch_skipper=None,
+        year_filter=None,
+        section_filter=None,
+        return_year=False,
+    ):
+        self.pubmed_tarfiles = pubmed_tarfiles
+
+        if batch_skipper is None:
+            batch_skipper = []
+
+        self.batch_skipper = batch_skipper
+
+        if year_filter is None:
+            year_filter = []
+
+        self.year_filter = year_filter
+
+        if section_filter is None:
+            section_filter = ["TITLE", "ABSTRACT"]
+
+        self.section_filter = section_filter
+
+        self.return_year = return_year
 
     def __iter__(self):
         print("Getting sentences...")
-        pmid_to_check = curr_pmid = curr_title = curr_abstract = curr_total = None
 
-        for line in gzip.open(self.pubtator_filename, "rt"):
-            if "|t|" in line or "|a|" in line:
-                pmid_to_check = line.split("|")[0]
-            elif line.strip() != "":
-                pmid_to_check = line.split("\t")[0]
+        # Cycle through PubMed Tarfiles
+        for pubtator_batch in self.pubmed_tarfiles:
 
-            if pmid_to_check is not None:
-                if self.pmids is None or int(pmid_to_check) in self.pmids:
-                    if "|t|" in line:
-                        curr_title = line.split("|")[2]
+            # Skip if batch is in skipper
+            if Path(pubtator_batch).name in self.batch_skipper:
+                continue
+
+            for doc_obj in PubtatorTarIterator(pubtator_batch):
+                year = doc_obj.xpath(
+                    "passage[contains(infon[@key='section_type']/text(), 'TITLE')]/infon[@key='year']/text()"
+                )
+
+                # Skip if year not in the filter
+                # Given that user wants to filter years out
+                if len(year) == 0:
+                    continue
+
+                if len(self.year_filter) > 0 and int(year[0]) not in self.year_filter:
+                    continue
+
+                for passage in doc_obj.xpath("passage"):
+                    section = passage.xpath("infon[@key='section_type']/text()")
+
+                    if section[0] not in self.section_filter:
                         continue
 
-                    if "|a|" in line:
-                        if curr_total is not None:
-                            yield curr_total.split()
-                        curr_pmid = line.split("|")[0]
-                        curr_abstract = line.split("|")[2]
-                        if curr_title is not None:
-                            curr_total = (
-                                curr_title + curr_abstract
-                            )  # combine title and abstract
+                    passage_text = passage.xpath("text/text()")
+
+                    if len(passage_text) < 1:
                         continue
+
+                    passage_text = passage_text[0]
+
+                    passage_offset = passage.xpath("offset/text()")[0]
+                    current_pos = 0
+                    yield_text = ""
+
+                    sorted_passages = sorted(
+                        passage.xpath("annotation"),
+                        key=lambda x: int(x.xpath("location")[0].attrib["offset"]),
+                    )
+
+                    for annotation in sorted_passages:
+                        annot_identifier = annotation.xpath(
+                            "infon[@key='identifier']/text()"
+                        )
+
+                        if len(annot_identifier) == 0 or annot_identifier[0] == "-":
+                            continue
+
+                        annot_type = annotation.xpath("infon[@key='type']/text()")
+                        location = annotation.xpath("location")
+
+                        # replace string with identifier
+                        entity_start = int(location[0].attrib["offset"]) - int(
+                            passage_offset
+                        )
+                        entity_end = entity_start + int(location[0].attrib["length"])
+                        replacement_str = f"{annot_type[0].upper()}_{annot_identifier[0].replace(':','_')}"
+                        yield_text += (
+                            passage_text[current_pos:entity_start].lower()
+                            + replacement_str
+                        )
+                        current_pos = entity_end
+
+                    yield_text += passage_text[current_pos:].lower()
+                    analyzed_text = nlp(yield_text)
+
+                    if self.return_year:
+                        yield int(year[0]), list(map(str, analyzed_text))
 
                     else:
-                        if curr_pmid is not None and curr_total is not None:
-                            if (
-                                "Disease" in line or "Gene" in line
-                            ):  # targeting gene-disease pairs
-                                features = line.split("\t")
-                                if (
-                                    features[0] == curr_pmid
-                                    and features[5].strip() != ""
-                                ):
-                                    curr_total = curr_total.replace(
-                                        features[3], features[5].strip(), 1
-                                    )
+                        yield list(map(str, analyzed_text))
 
-        if curr_total is not None:
-            yield curr_total.split()
+
+def chunks(lst, n):
+    """Yield successive n-sized chunks from lst."""
+    for i in range(0, len(lst), n):
+        yield lst[i : i + n]
 
 
 def get_gene_disease_pairs(gene_disease_filename, do_mesh_filename):
