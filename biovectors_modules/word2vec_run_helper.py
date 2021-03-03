@@ -48,7 +48,8 @@ class PubtatorTarIterator:
 class PubMedSentencesIterator:
     """
     Extracts title + abstracts from Pubtator data. Replaces any entity instance
-    with their respective identifier.
+    (i.e. 'gene', 'disease)
+    with their respective identifier type (i.e. 'Entrez gene id', 'MESH id').
     """
 
     def __init__(
