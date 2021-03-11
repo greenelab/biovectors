@@ -1,13 +1,15 @@
 import gzip
+from multiprocessing import Process, Manager
 from pathlib import Path
 import random
 import tarfile
+from threading import Thread
 
 import lxml.etree as ET
 import pandas as pd
 import spacy
 
-nlp = spacy.load("en_core_web_sm")
+random.seed(100)
 
 
 class PubtatorTarIterator:
@@ -58,6 +60,8 @@ class PubMedSentencesIterator:
         year_filter=None,
         section_filter=None,
         return_year=False,
+        tag_entities=True,
+        jobs=4,
     ):
         self.pubmed_tarfiles = pubmed_tarfiles
 
@@ -76,12 +80,11 @@ class PubMedSentencesIterator:
 
         self.section_filter = section_filter
 
+        self.tag_entities = tag_entities
         self.return_year = return_year
+        self.jobs = jobs
 
-    def __iter__(self):
-        print("Getting sentences...")
-
-        # Cycle through PubMed Tarfiles
+    def _feed_in_pubmed_objs(self, pubmed_obj_queue):
         for pubtator_batch in self.pubmed_tarfiles:
 
             # Skip if batch is in skipper
@@ -89,35 +92,53 @@ class PubMedSentencesIterator:
                 continue
 
             for doc_obj in PubtatorTarIterator(pubtator_batch):
-                year = doc_obj.xpath(
-                    "passage[contains(infon[@key='section_type']/text(), 'TITLE')]/infon[@key='year']/text()"
-                )
+                pubmed_obj_queue.put(ET.tostring(doc_obj))
 
-                # Skip if year not in the filter
-                # Given that user wants to filter years out
-                if len(year) == 0:
+                doc_obj.clear()
+
+        # Tell the jobs to end from the feeding thread
+        for job in range(self.jobs):
+            pubmed_obj_queue.put(None)  # poison pill to end the processes
+
+    def _process_document_objs(self, pubmed_obj_queue, sen_queue):
+        nlp = spacy.load("en_core_web_sm")
+        while True:
+            doc_obj = pubmed_obj_queue.get()
+
+            if doc_obj is None:
+                break
+
+            doc_obj = ET.fromstring(doc_obj)
+            year = doc_obj.xpath(
+                "passage[contains(infon[@key='section_type']/text(), 'TITLE')]/infon[@key='year']/text()"
+            )
+
+            # Skip if year not in the filter
+            # Given that user wants to filter years out
+            if len(year) == 0:
+                continue
+
+            if len(self.year_filter) > 0 and int(year[0]) not in self.year_filter:
+                continue
+
+            for passage in doc_obj.xpath("passage"):
+                section = passage.xpath("infon[@key='section_type']/text()")
+
+                if section[0] not in self.section_filter:
                     continue
 
-                if len(self.year_filter) > 0 and int(year[0]) not in self.year_filter:
+                passage_text = passage.xpath("text/text()")
+
+                if len(passage_text) < 1:
                     continue
 
-                for passage in doc_obj.xpath("passage"):
-                    section = passage.xpath("infon[@key='section_type']/text()")
+                passage_text = passage_text[0]
 
-                    if section[0] not in self.section_filter:
-                        continue
+                passage_offset = passage.xpath("offset/text()")[0]
+                current_pos = 0
+                yield_text = ""
 
-                    passage_text = passage.xpath("text/text()")
-
-                    if len(passage_text) < 1:
-                        continue
-
-                    passage_text = passage_text[0]
-
-                    passage_offset = passage.xpath("offset/text()")[0]
-                    current_pos = 0
-                    yield_text = ""
-
+                if self.tag_entities:
                     sorted_passages = sorted(
                         passage.xpath("annotation"),
                         key=lambda x: int(x.xpath("location")[0].attrib["offset"]),
@@ -139,21 +160,66 @@ class PubMedSentencesIterator:
                             passage_offset
                         )
                         entity_end = entity_start + int(location[0].attrib["length"])
-                        replacement_str = f"{annot_type[0].upper()}_{annot_identifier[0].replace(':','_')}"
+                        replacement_str = f" {annot_type[0].upper()}_{annot_identifier[0].replace(':','_')} "
                         yield_text += (
                             passage_text[current_pos:entity_start].lower()
                             + replacement_str
                         )
                         current_pos = entity_end
 
-                    yield_text += passage_text[current_pos:].lower()
-                    analyzed_text = nlp(yield_text)
+                yield_text += passage_text[current_pos:].lower()
+                analyzed_text = nlp(yield_text)
 
-                    if self.return_year:
-                        yield int(year[0]), list(map(str, analyzed_text))
+                sen_queue.put((int(year[0]), list(map(str, analyzed_text))))
 
-                    else:
-                        yield list(map(str, analyzed_text))
+        sen_queue.put(None)  # Poison pill for sentence feeder
+
+    def __iter__(self):
+        # print("Getting sentences...")
+
+        # randomly shuffle sentences
+        random.shuffle(self.pubmed_tarfiles)
+        finished_job_count = 0
+
+        with Manager() as m:
+            # Set up the Queue
+            pubmed_obj_queue = m.JoinableQueue(50000)
+            sen_queue = m.JoinableQueue(50000)
+
+            # Start the document object feeder
+            t = Thread(target=self._feed_in_pubmed_objs, args=(pubmed_obj_queue,))
+            t.start()
+
+            # Start the jobs
+            runnable_jobs = []
+            for job in range(self.jobs):
+                p = Process(
+                    target=self._process_document_objs,
+                    args=(pubmed_obj_queue, sen_queue),
+                )
+                runnable_jobs.append(p)
+                p.start()
+
+            # Feed the sentence to the user
+            while True:
+                sentence = sen_queue.get()
+
+                # Count the number of jobs being finished.
+                # If total equals num of jobs launched
+                # then break out of while loop to finish iteration
+                if sentence is None:
+                    finished_job_count += 1
+
+                    if finished_job_count == self.jobs:
+                        break
+
+                    continue
+
+                if self.return_year:
+                    yield sentence[0], sentence[1]
+
+                else:
+                    yield sentence[1]
 
 
 def chunks(lst, n):
