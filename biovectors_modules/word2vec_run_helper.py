@@ -8,8 +8,10 @@ from threading import Thread
 import lxml.etree as ET
 import pandas as pd
 import spacy
+import tqdm
 
 random.seed(100)
+QUEUE_SIZE = 150000  # Increase queue size
 
 
 class PubtatorTarIterator:
@@ -18,33 +20,79 @@ class PubtatorTarIterator:
     tar gz Pubtator Central created
     """
 
-    def __init__(self, tarfile_name):
+    def __init__(
+        self,
+        tarfile_name,
+        return_ibatch_file=False,
+        specific_files=None,
+        progress_bar_prefix="",
+    ):
         self.pubtator_tar_directory = tarfile.open(tarfile_name)
+        self.return_ibatch_file = return_ibatch_file
+
+        if specific_files is None:
+            specific_files = []
+
+        self.specific_files = specific_files
+        self.progress_bar_prefix = progress_bar_prefix
 
     def __iter__(self):
-        # Iterate through documents within each Pubtator Batch
-        while True:
-            try:
-                pubtator_batch = self.pubtator_tar_directory.next()
+        if len(self.specific_files) == 0:
+            # Iterate through all documents within each Pubtator Batch
+            while True:
+                try:
+                    pubtator_batch = self.pubtator_tar_directory.next()
 
-                if pubtator_batch is None:
+                    if pubtator_batch is None:
+                        break
+
+                    doc_iterator = ET.iterparse(
+                        self.pubtator_tar_directory.extractfile(pubtator_batch),
+                        tag="document",
+                        recover=True,
+                    )
+
+                    # Yield the individual document objects
+                    for event, doc_obj in doc_iterator:
+                        if self.return_ibatch_file:
+                            yield pubtator_batch.name, doc_obj
+
+                        else:
+                            yield doc_obj
+
+                        doc_obj.clear()
+
+                except tarfile.ReadError:
+                    print("Parsing the archive reached an error. Breaking out the loop")
                     break
+        else:
+            try:
+                # Iterate through specific docuemnt batches within Pubtator
+                for file in tqdm.tqdm(
+                    self.specific_files, desc=f"{self.progress_bar_prefix}"
+                ):
 
-                doc_iterator = ET.iterparse(
-                    self.pubtator_tar_directory.extractfile(pubtator_batch),
-                    tag="document",
-                    recover=True,
-                )
+                    doc_iterator = ET.iterparse(
+                        self.pubtator_tar_directory.extractfile(file),
+                        tag="document",
+                        recover=True,
+                    )
 
-                # Yield the individual document objects
-                for event, doc_obj in doc_iterator:
-                    yield doc_obj
+                    # Yield the individual document objects
+                    for event, doc_obj in doc_iterator:
+                        if self.return_ibatch_file:
+                            yield file, doc_obj
 
-                    doc_obj.clear()
+                        else:
+                            yield doc_obj
+
+                        doc_obj.clear()
 
             except tarfile.ReadError:
                 print("Parsing the archive reached an error. Breaking out the loop")
-                break
+
+        # Close the stream at the end
+        self.pubtator_tar_directory.close()
 
 
 class PubMedSentencesIterator:
@@ -57,7 +105,7 @@ class PubMedSentencesIterator:
     def __init__(
         self,
         pubmed_tarfiles,
-        batch_skipper=None,
+        batch_mapper=None,
         year_filter=None,
         section_filter=None,
         return_year=False,
@@ -66,10 +114,10 @@ class PubMedSentencesIterator:
     ):
         self.pubmed_tarfiles = pubmed_tarfiles
 
-        if batch_skipper is None:
-            batch_skipper = []
+        if batch_mapper is None:
+            batch_mapper = {}
 
-        self.batch_skipper = batch_skipper
+        self.batch_mapper = batch_mapper
 
         if year_filter is None:
             year_filter = []
@@ -89,10 +137,19 @@ class PubMedSentencesIterator:
         for pubtator_batch in self.pubmed_tarfiles:
 
             # Skip if batch is in skipper
-            if Path(pubtator_batch).name in self.batch_skipper:
+            if (
+                len(self.batch_mapper) > 0
+                and Path(pubtator_batch).name not in self.batch_mapper
+            ):
                 continue
 
-            for doc_obj in PubtatorTarIterator(pubtator_batch):
+            pubtator_batch_iterator = PubtatorTarIterator(
+                pubtator_batch,
+                specific_files=self.batch_mapper[pubtator_batch.name],
+                progress_bar_prefix=f"{pubtator_batch.name}",
+            )
+
+            for doc_obj in pubtator_batch_iterator:
                 pubmed_obj_queue.put(ET.tostring(doc_obj))
 
                 doc_obj.clear()
@@ -102,7 +159,15 @@ class PubMedSentencesIterator:
             pubmed_obj_queue.put(None)  # poison pill to end the processes
 
     def _process_document_objs(self, pubmed_obj_queue, sen_queue):
-        nlp = spacy.load("en_core_web_sm")
+        disabled_pipelines = [
+            "tagger",
+            "parser",
+            "ner",
+            "attribute_ruler",
+            "tok2vec",
+        ]
+        nlp = spacy.load("en_core_web_sm", disable=disabled_pipelines)
+
         while True:
             doc_obj = pubmed_obj_queue.get()
 
@@ -176,16 +241,16 @@ class PubMedSentencesIterator:
         sen_queue.put(None)  # Poison pill for sentence feeder
 
     def __iter__(self):
-        # print("Getting sentences...")
 
         # randomly shuffle sentences
         random.shuffle(self.pubmed_tarfiles)
         finished_job_count = 0
 
         with Manager() as m:
+
             # Set up the Queue
-            pubmed_obj_queue = m.JoinableQueue(50000)
-            sen_queue = m.JoinableQueue(50000)
+            pubmed_obj_queue = m.JoinableQueue(QUEUE_SIZE)
+            sen_queue = m.JoinableQueue(QUEUE_SIZE)
 
             # Start the document object feeder
             t = Thread(target=self._feed_in_pubmed_objs, args=(pubmed_obj_queue,))
