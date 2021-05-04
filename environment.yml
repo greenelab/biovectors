@@ -14,6 +14,7 @@ dependencies:
    - jupyter_console==6.0.0
    - jupyter_core==4.6.0
    - jupytext==1.9.1
+   - imageio==2.9.0
    - ipykernel==5.1.2
    - matplotlib==3.3.3
    - numpy==1.17.5
