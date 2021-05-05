@@ -15,6 +15,8 @@
 
 # # Analyze Word2Vec by Decades Run
 
+# This notebook is designed to calculate statistics on fully trained word2vec models trained in [01_word2vec_decade_runner.ipynb](01_word2vec_decade_runner.ipynb). The statistics calculated are the cosine distance between tokens on a global level and a local level. Cosine distance is a helpful metric as it isn't affected by the magnitude of vectors.
+
 # +
 # %load_ext autoreload
 # %autoreload 2
@@ -152,11 +154,10 @@ for key in tqdm.tqdm(window(years_analyzed)):
     )
 
     label = "_".join(reversed(key))
+    output_filepath = Path(f"output/{year_distance_folder}") / Path(f"{label}_dist.tsv")
 
     (
         global_distance.merge(local_distance)
         .assign(shift=lambda x: x.global_dist.values - x.local_dist.values)
-        .to_csv(
-            f"output/{year_distance_folder}/{label}_dist.tsv", sep="\t", index=False
-        )
+        .to_csv(str(output_filepath), index=False, sep="\t")
     )

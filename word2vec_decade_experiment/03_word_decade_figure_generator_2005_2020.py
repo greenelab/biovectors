@@ -81,7 +81,7 @@ else:
 
 # # Visualize Words Shifting through Time
 
-# Global distance measures how far a word has moved within semantic space. This measure captures how words change globally across time periods. The greater the distance the more semantic change a word has been subjected towards.
+# This section is the same analysis mentioned in [03_word_decade_figure_generator_2000_2020.ipynb](03_word_decade_figure_generator_2000_2020.ipynb). The basic idea is to see how CRISPR shifts through time.
 
 # ## CRISPR
 
@@ -119,4 +119,4 @@ plot_wordcloud_neighbors(
 
 # # Conclusions - Take Home Point(s)
 
-# 1. CRISPR has a nice transition from plant biology to genome editing. Word cloud neighbors does wonders in observing this transition.
+# 1. CRISPR has a nice transition from microbiology to genome editing. Word cloud neighbors does wonders in observing this transition.
