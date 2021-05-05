@@ -55,7 +55,7 @@ pubtator_abstract_batch = list(Path("../pubtator_abstracts").rglob("*.gz"))
 print(len(pubtator_abstract_batch))
 
 for batch_directory in pubtator_abstract_batch:
-    for doc_obj in PubtatorTarIterator(batch_directory):
+    for doc_obj in PubtatorTarIterator(batch_directory, return_ibatch_file=False):
         passages = doc_obj.xpath("//passage")
         lxml_str = ET.tostring(passages[1], pretty_print=True)
         print(lxml_str.decode("utf-8"))
@@ -64,12 +64,13 @@ for batch_directory in pubtator_abstract_batch:
 
 # # Grab Document Metadata
 
-if not Path("output/pmc_metadata.tsv.xz").exists():
-    with lzma.open("output/pmc_metadata.tsv.xz", "wt") as outfile:
+if not Path("output/pmc_metadata_2.tsv.xz").exists():
+    with lzma.open("output/pmc_metadata_2.tsv.xz", "wt") as outfile:
         writer = csv.DictWriter(
             outfile,
             fieldnames=[
                 "batch_folder",
+                "batch_file",
                 "doc_id",
                 "doi",
                 "pmc",
@@ -85,7 +86,9 @@ if not Path("output/pmc_metadata.tsv.xz").exists():
         for batch_directory in pubtator_abstract_batch:
 
             # Cycle through each document
-            for doc_obj in tqdm.tqdm(PubtatorTarIterator(batch_directory)):
+            for file_name, doc_obj in tqdm.tqdm(
+                PubtatorTarIterator(batch_directory, return_ibatch_file=True)
+            ):
                 doc_id = doc_obj.xpath("id/text()")
                 doi = doc_obj.xpath("passage/infon[@key='article-id_doi']/text()")
                 pmc_id = doc_obj.xpath("passage/infon[@key='article-id_pmc']/text()")
@@ -102,6 +105,7 @@ if not Path("output/pmc_metadata.tsv.xz").exists():
                 writer.writerow(
                     {
                         "batch_folder": batch_directory.name,
+                        "batch_file": file_name,
                         "doc_id": doc_id[0],
                         "doi": doi[0] if len(doi) > 0 else "",
                         "pmc": pmc_id[0] if len(pmc_id) > 0 else "",
@@ -118,7 +122,7 @@ if not Path("output/pmc_metadata.tsv.xz").exists():
 
 # # Analyze Abstract/Full Text Dataset
 
-pubtator_central_metadata_df = pd.read_csv("output/pmc_metadata.tsv.xz", sep="\t")
+pubtator_central_metadata_df = pd.read_csv("output/pmc_metadata_2.tsv.xz", sep="\t")
 print(pubtator_central_metadata_df.shape)
 pubtator_central_metadata_df.head()
 
