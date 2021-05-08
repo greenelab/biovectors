@@ -28,10 +28,7 @@ import numpy as np
 import pandas as pd
 import plotnine as p9
 import tqdm
-
-from msp_tsne import MultiscaleParametricTSNE
-import tensorflow as tf
-from tensorflow import keras
+from umap.parametric_umap import ParametricUMAP, load_ParametricUMAP
 
 from biovectors_modules.plot_helper import (
     plot_token_timeline,
@@ -43,13 +40,14 @@ from biovectors_modules.word2vec_analysis_helper import (
     generate_timeline,
     get_neighbors,
     project_token_timeline,
-    window,
 )
 # -
 
 # # Load Models to Observe Changes
 
-aligned_models = pickle.load(open("output/aligned_word_vectors_2005_2020.pkl", "rb"))
+aligned_models = pickle.load(
+    open("output/aligned_word_vectors_2005_2020_replace.pkl", "rb")
+)
 
 year_comparison_dict = {
     "_".join(comparison_file.stem.split("_")[0:2]): (
@@ -66,18 +64,16 @@ year_comparison_dict["2005_2006"].sort_values("global_dist")
 # The goal here is to train a TSNE model that projects all words from 2005 to 2020 into a two dimensional space. Allows one to visually track how a word vector is shifting through time.
 
 word_models_stacked = np.vstack(list(aligned_models.values())[:-1])
-file_name = "output/2005_2020_model.h5"
+file_name = "output/2005_2020_umap_model"
 
 if not Path(file_name).exists():
-    tf.random.set_random_seed(100)
-    np.random.seed(100)
-    model = MultiscaleParametricTSNE(n_iter=300)
-    model.fit(word_models_stacked)
-    keras.models.save_model(model._model, file_name)
+    Path(file_name).mkdir(parents=True)
+    model = ParametricUMAP(verbose=True, metric="cosine", random_state=100)
+    embedding = model.fit_transform(word_models_stacked)
+    model.save(file_name)
 else:
-    model = MultiscaleParametricTSNE(n_iter=300)
-    model._build_model(300, 2)
-    model._model.load_weights(file_name)
+    model = load_ParametricUMAP(file_name)
+model.verbose = False
 
 # # Visualize Words Shifting through Time
 
@@ -91,7 +87,7 @@ token_timeline_df.head()
 token_timeline_low_dim_df = project_token_timeline(
     "crispr", aligned_models, model, neighbors=25
 )
-token_timeline_low_dim_df.head()
+token_timeline_low_dim_df.query("token=='main'")
 
 global_distance, local_distance = plot_local_global_distances(
     token_timeline_df, token="crispr"

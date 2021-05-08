@@ -65,7 +65,7 @@ def plot_token_timeline(timeline_df: pd.DataFrame) -> p9.ggplot:
     g = (
         p9.ggplot(
             timeline_df.query("label=='main'"),
-            p9.aes(x="tsne_dim1", y="tsne_dim2", label="year"),
+            p9.aes(x="umap_dim1", y="umap_dim2", label="year"),
         )
         + p9.geom_text(
             size=8,
@@ -84,8 +84,8 @@ def plot_token_timeline(timeline_df: pd.DataFrame) -> p9.ggplot:
         + p9.labs(title=token_title)
         + p9.xlim(
             [
-                np.floor(timeline_df.tsne_dim1.min()),
-                np.ceil(timeline_df.tsne_dim1.max()),
+                np.floor(timeline_df.umap_dim1.min()),
+                np.ceil(timeline_df.umap_dim1.max()),
             ]
         )
     )

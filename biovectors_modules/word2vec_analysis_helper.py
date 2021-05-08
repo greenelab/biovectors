@@ -1,13 +1,12 @@
 import itertools
 from typing import Any, Mapping, Sequence, Tuple, Iterable
 
-from msp_tsne import MultiscaleParametricTSNE
 import numpy as np
 import pandas as pd
 from scipy.spatial.distance import cdist, pdist, squareform
 from scipy.linalg import orthogonal_procrustes
-import tensorflow as tf
 import tqdm
+from umap.parametric_umap import ParametricUMAP
 
 
 def generate_timeline(
@@ -35,7 +34,7 @@ def generate_timeline(
 
 
 def get_global_distance(
-    year_one_model: str, year_two_model: str, shared_tokens: Sequence[str]
+    year_one_model: np.array, year_two_model: np.array, shared_tokens: Sequence[str]
 ) -> pd.DataFrame:
     """
     This function is designed to get the global distance of ever token between two years.
@@ -57,8 +56,8 @@ def get_global_distance(
 
 
 def get_local_distance(
-    year_one_model: str,
-    year_two_model: str,
+    year_one_model: np.array,
+    year_two_model: np.array,
     shared_tokens: Sequence[str],
     neighbors: int = 5,
 ) -> pd.DataFrame:
@@ -156,7 +155,7 @@ def get_neighbors(
 def project_token_timeline(
     token: str,
     aligned_models: Mapping[str, Any],
-    model: MultiscaleParametricTSNE,
+    model: ParametricUMAP,
     neighbors: int = 0,
 ) -> pd.DataFrame:
     """
@@ -169,7 +168,6 @@ def project_token_timeline(
         neighbors - the number of neighbor tokens to gather
     """
 
-    tf.compat.v1.random.set_random_seed(100)
     main_token_index = aligned_models["shared_tokens"].index(token)
     coordinates = []
     for year in aligned_models:
@@ -181,8 +179,8 @@ def project_token_timeline(
         )
         coordinates.append(
             {
-                "tsne_dim1": projected_coord[0][0],
-                "tsne_dim2": projected_coord[0][1],
+                "umap_dim1": projected_coord[0][0],
+                "umap_dim2": projected_coord[0][1],
                 "year": year,
                 "token": aligned_models["shared_tokens"][main_token_index],
                 "label": "main",
@@ -204,8 +202,8 @@ def project_token_timeline(
 
             coordinates.append(
                 {
-                    "tsne_dim1": projected_coord[0][0],
-                    "tsne_dim2": projected_coord[0][1],
+                    "umap_dim1": projected_coord[0][0],
+                    "umap_dim2": projected_coord[0][1],
                     "year": year,
                     "token": aligned_models["shared_tokens"][neighbor_token_index],
                     "label": "neighbor",
