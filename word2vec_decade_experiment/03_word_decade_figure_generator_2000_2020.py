@@ -47,9 +47,7 @@ from biovectors_modules.word2vec_analysis_helper import (
 
 # ## Load Aligned Word Vectors
 
-aligned_models = pickle.load(
-    open("output/aligned_word_vectors_2000_2020_replace.pkl", "rb")
-)
+aligned_models = pickle.load(open("output/aligned_word_vectors_2000_2020.pkl", "rb"))
 
 year_comparison_dict = {
     "_".join(comparison_file.stem.split("_")[0:2]): (
@@ -65,12 +63,25 @@ year_comparison_dict["2000_2005"].sort_values("global_dist", ascending=False)
 
 # The goal here is to train a TSNE model that projects all words from 2000 to 2020 into a two dimensional space. Allows one to visually track how a word vector is shifting through time.
 
-word_models_stacked = np.vstack(list(aligned_models.values())[:-1])
+origin_df = aligned_models["2000"]
+word_vectors = list(
+    map(
+        lambda x: x.query(f"token in {origin_df.token.tolist()}")
+        .sort_values("token")
+        .set_index("token")
+        .values,
+        aligned_models.values(),
+    )
+)
+
+word_models_stacked = np.vstack(word_vectors)
 file_name = "output/2000_2020_umap_model"
 
 if not Path(file_name).exists():
     Path(file_name).mkdir(parents=True)
-    model = ParametricUMAP(verbose=True, metric="cosine", random_state=100)
+    model = ParametricUMAP(
+        verbose=True, metric="cosine", random_state=100, low_memory=True, n_neighbors=25
+    )
     embedding = model.fit_transform(word_models_stacked)
     model.save(file_name)
 else:

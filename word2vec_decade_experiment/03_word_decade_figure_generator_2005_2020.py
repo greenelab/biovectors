@@ -45,9 +45,7 @@ from biovectors_modules.word2vec_analysis_helper import (
 
 # # Load Models to Observe Changes
 
-aligned_models = pickle.load(
-    open("output/aligned_word_vectors_2005_2020_replace.pkl", "rb")
-)
+aligned_models = pickle.load(open("output/aligned_word_vectors_2000_2020.pkl", "rb"))
 
 year_comparison_dict = {
     "_".join(comparison_file.stem.split("_")[0:2]): (
@@ -63,8 +61,19 @@ year_comparison_dict["2005_2006"].sort_values("global_dist")
 
 # The goal here is to train a TSNE model that projects all words from 2005 to 2020 into a two dimensional space. Allows one to visually track how a word vector is shifting through time.
 
-word_models_stacked = np.vstack(list(aligned_models.values())[:-1])
-file_name = "output/2005_2020_umap_model"
+origin_df = aligned_models["2005"]
+word_vectors = list(
+    map(
+        lambda x: x.query(f"token in {origin_df.token.tolist()}")
+        .sort_values("token")
+        .set_index("token")
+        .values,
+        list(aligned_models.values())[5:],
+    )
+)
+
+word_models_stacked = np.vstack(word_vectors)
+file_name = "output/2000_2020_umap_model"
 
 if not Path(file_name).exists():
     Path(file_name).mkdir(parents=True)
@@ -87,7 +96,7 @@ token_timeline_df.head()
 token_timeline_low_dim_df = project_token_timeline(
     "crispr", aligned_models, model, neighbors=25
 )
-token_timeline_low_dim_df.query("token=='main'")
+token_timeline_low_dim_df.query("label=='main'")
 
 global_distance, local_distance = plot_local_global_distances(
     token_timeline_df, token="crispr"
