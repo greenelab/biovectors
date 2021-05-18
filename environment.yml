@@ -26,3 +26,4 @@ dependencies:
    - scipy==1.5.4
    - spacy==2.2.3
    - tqdm==4.35.0
+   - umap-learn==0.5.1

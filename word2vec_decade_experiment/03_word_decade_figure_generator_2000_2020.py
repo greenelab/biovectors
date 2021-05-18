@@ -24,13 +24,11 @@
 from pathlib import Path
 import pickle
 
-from msp_tsne import MultiscaleParametricTSNE
 import numpy as np
 import pandas as pd
 import plotnine as p9
-import tensorflow as tf
-from tensorflow import keras
 import tqdm
+from umap.parametric_umap import ParametricUMAP, load_ParametricUMAP
 
 from biovectors_modules.plot_helper import (
     plot_local_global_distances,
@@ -42,7 +40,6 @@ from biovectors_modules.word2vec_analysis_helper import (
     generate_timeline,
     get_neighbors,
     project_token_timeline,
-    window,
 )
 # -
 
@@ -50,40 +47,54 @@ from biovectors_modules.word2vec_analysis_helper import (
 
 # ## Load Aligned Word Vectors
 
-aligned_models = pickle.load(open("output/aligned_word_vectors.pkl", "rb"))
+aligned_models = pickle.load(open("output/aligned_word_vectors_2000_2020.pkl", "rb"))
 
 year_comparison_dict = {
     "_".join(comparison_file.stem.split("_")[0:2]): (
         pd.read_csv(str(comparison_file), sep="\t")
     )
-    for comparison_file in (list(Path("output/year_distances").rglob("*tsv")))
+    for comparison_file in (list(Path("output/year_distances_2000_2020").rglob("*tsv")))
 }
 list(year_comparison_dict.keys())[0:3]
 
-year_comparison_dict["2007_2008"].sort_values("global_dist")
+year_comparison_dict["2000_2005"].sort_values("global_dist", ascending=False)
 
-# ## Train TSNE Model to Project Time Shifts into Two Dimensional Space
+# ## Train UMAP Model to Project Time Shifts into Two Dimensional Space
 
 # The goal here is to train a TSNE model that projects all words from 2000 to 2020 into a two dimensional space. Allows one to visually track how a word vector is shifting through time.
 
-word_models_stacked = np.vstack(list(aligned_models.values())[:-1])
-file_name = "output/2000_2020_model.h5"
+origin_df = aligned_models["2000"]
+word_vectors = list(
+    map(
+        lambda x: x.query(f"token in {origin_df.token.tolist()}")
+        .sort_values("token")
+        .set_index("token")
+        .values,
+        aligned_models.values(),
+    )
+)
+
+word_models_stacked = np.vstack(word_vectors)
+file_name = "output/2000_2020_umap_model"
 
 if not Path(file_name).exists():
-    tf.random.set_random_seed(100)
-    np.random.seed(100)
-    model = MultiscaleParametricTSNE(n_iter=300)
-    model.fit(word_models_stacked)
-    keras.models.save_model(model._model, file_name)
+    Path(file_name).mkdir(parents=True)
+    model = ParametricUMAP(
+        verbose=True, metric="cosine", random_state=100, low_memory=True, n_neighbors=25
+    )
+    embedding = model.fit_transform(word_models_stacked)
+    model.save(file_name)
 else:
-    model = MultiscaleParametricTSNE(n_iter=300)
-    model._build_model(300, 2)
-    model._model.load_weights(file_name)
+    model = load_ParametricUMAP(file_name)
+model.verbose = False
 
 # # Observe Diachronic Vector Changes
 
 # Global distance measures how far a word has moved within semantic space. This measure captures how words change globally across time periods. The greater the distance the more semantic change a word has been subjected towards.
 # The word clouds depict the neighbors for each word vector. The size for each token  appears to be different but size doesn't matter in this case. Each word has equal weighting.
+
+wordcloud_folder = Path("output/wordcloud_plots_2000_2020")
+timeline_folder = Path("output/timeline_figures")
 
 # ## Are
 
@@ -93,7 +104,7 @@ token_timeline_df.head()
 token_timeline_low_dim_df = project_token_timeline(
     "are", aligned_models, model, neighbors=25
 )
-token_timeline_low_dim_df.head()
+token_timeline_low_dim_df.query("label=='main'")
 
 global_distance, local_distance = plot_local_global_distances(token_timeline_df, "are")
 
@@ -102,17 +113,17 @@ global_distance
 local_distance
 
 g = plot_token_timeline(token_timeline_low_dim_df)
-g.save("output/figures/are_time_plot.png")
+g.save(f"{str(timeline_folder)}/are_time_plot.png")
 print(g)
 
 plot_wordcloud_neighbors_gif(
-    token_timeline_low_dim_df, plot_filename="output/wordcloud_plots/are.gif"
+    token_timeline_low_dim_df, plot_filename=f"{str(wordcloud_folder)}/are.gif"
 )
 
-# ![are gif here](output/wordcloud_plots/are.gif)
+# ![are gif here](output/wordcloud_plots_2000_2020/are.gif)
 
 plot_wordcloud_neighbors(
-    token_timeline_low_dim_df, plot_filename="output/wordcloud_plots/are.png"
+    token_timeline_low_dim_df, plot_filename=f"{str(wordcloud_folder)}/are.png"
 )
 
 # ## Expression
@@ -123,7 +134,7 @@ token_timeline_df.head()
 token_timeline_low_dim_df = project_token_timeline(
     "expression", aligned_models, model, neighbors=25
 )
-token_timeline_low_dim_df.head()
+token_timeline_low_dim_df.query("label=='main'")
 
 global_distance, local_distance = plot_local_global_distances(
     token_timeline_df, "expression"
@@ -134,17 +145,19 @@ global_distance
 local_distance
 
 g = plot_token_timeline(token_timeline_low_dim_df)
-g.save("output/figures/expression_time_plot.png")
+g.save(f"{str(timeline_folder)}/expression_time_plot.png")
 print(g)
 
 plot_wordcloud_neighbors_gif(
-    token_timeline_low_dim_df, plot_filename="output/wordcloud_plots/expression.gif"
+    token_timeline_low_dim_df,
+    plot_filename=f"{str(wordcloud_folder)}/expression.gif",
 )
 
-# ![expression gif here](output/wordcloud_plots/expression.gif)
+# ![expression gif here](output/wordcloud_plots_2000_2020/expression.gif)
 
 plot_wordcloud_neighbors(
-    token_timeline_low_dim_df, plot_filename="output/wordcloud_plots/expression.png"
+    token_timeline_low_dim_df,
+    plot_filename=f"{str(wordcloud_folder)}/expression.png",
 )
 
 # ## 95%ci
@@ -155,7 +168,7 @@ token_timeline_df.head()
 token_timeline_low_dim_df = project_token_timeline(
     "95%ci", aligned_models, model, neighbors=25
 )
-token_timeline_low_dim_df.head()
+token_timeline_low_dim_df.query("label=='main'")
 
 global_distance, local_distance = plot_local_global_distances(
     token_timeline_df, token="95%ci"
@@ -166,17 +179,19 @@ global_distance
 local_distance
 
 g = plot_token_timeline(token_timeline_low_dim_df)
-g.save("output/figures/95_ci_time_plot.png")
+g.save(f"{str(timeline_folder)}/95_ci_time_plot.png")
 print(g)
 
 plot_wordcloud_neighbors_gif(
-    token_timeline_low_dim_df, plot_filename="output/wordcloud_plots/95%ci.gif"
+    token_timeline_low_dim_df,
+    plot_filename=f"{str(wordcloud_folder)}/95%ci.gif",
 )
 
-# ![95%ci gif here](output/wordcloud_plots/95%ci.gif)
+# ![95%ci gif here](output/wordcloud_plots_2000_2020/95%ci.gif)
 
 plot_wordcloud_neighbors(
-    token_timeline_low_dim_df, plot_filename="output/wordcloud_plots/95%ci.png"
+    token_timeline_low_dim_df,
+    plot_filename=f"{str(wordcloud_folder)}/95%ci.png",
 )
 
 # ## interleukin-18
@@ -187,7 +202,7 @@ token_timeline_df.head()
 token_timeline_low_dim_df = project_token_timeline(
     "interleukin-18", aligned_models, model, neighbors=25
 )
-token_timeline_low_dim_df.head()
+token_timeline_low_dim_df.query("label=='main'")
 
 global_distance, local_distance = plot_local_global_distances(
     token_timeline_df, token="interleukin-18"
@@ -198,17 +213,19 @@ global_distance
 local_distance
 
 g = plot_token_timeline(token_timeline_low_dim_df)
-g.save("output/figures/interleukin18_time_plot.png")
+g.save(f"{str(timeline_folder)}/interleukin18_time_plot.png")
 print(g)
 
 plot_wordcloud_neighbors_gif(
-    token_timeline_low_dim_df, plot_filename="output/wordcloud_plots/interleukin-18.gif"
+    token_timeline_low_dim_df,
+    plot_filename=f"{str(wordcloud_folder)}/interleukin-18.gif",
 )
 
-# ![interleukin-18 gif here](output/wordcloud_plots/interleukin-18.gif)
+# ![interleukin-18 gif here](output/wordcloud_plots_2000_2020/interleukin-18.gif)
 
 plot_wordcloud_neighbors(
-    token_timeline_low_dim_df, plot_filename="output/wordcloud_plots/interleukin_18.png"
+    token_timeline_low_dim_df,
+    plot_filename=f"{str(wordcloud_folder)}/interleukin_18.png",
 )
 
 # ## p53
@@ -219,7 +236,7 @@ token_timeline_df.head()
 token_timeline_low_dim_df = project_token_timeline(
     "p53", aligned_models, model, neighbors=25
 )
-token_timeline_low_dim_df.head()
+token_timeline_low_dim_df.query("label=='main'")
 
 global_distance, local_distance = plot_local_global_distances(
     token_timeline_df, token="p53"
@@ -230,17 +247,17 @@ global_distance
 local_distance
 
 g = plot_token_timeline(token_timeline_low_dim_df)
-g.save("output/figures/p53_time_plot.png")
+g.save(f"{str(timeline_folder)}/p53_time_plot.png")
 print(g)
 
 plot_wordcloud_neighbors_gif(
-    token_timeline_low_dim_df, plot_filename="output/wordcloud_plots/p53.gif"
+    token_timeline_low_dim_df, plot_filename=f"{str(wordcloud_folder)}/p53.gif"
 )
 
-# ![p53 gif here](output/wordcloud_plots/p53.gif)
+# ![p53 gif here](output/wordcloud_plots_2000_2020/p53.gif)
 
 plot_wordcloud_neighbors(
-    token_timeline_low_dim_df, plot_filename="output/wordcloud_plots/p53.png"
+    token_timeline_low_dim_df, plot_filename=f"{str(wordcloud_folder)}/p53.png"
 )
 
 # ## Cystic
@@ -251,7 +268,7 @@ token_timeline_df.head()
 token_timeline_low_dim_df = project_token_timeline(
     "cystic", aligned_models, model, neighbors=25
 )
-token_timeline_low_dim_df.head()
+token_timeline_low_dim_df.query("label=='main'")
 
 global_distance, local_distance = plot_local_global_distances(
     token_timeline_df, token="cystic"
@@ -262,17 +279,19 @@ global_distance
 local_distance
 
 g = plot_token_timeline(token_timeline_low_dim_df)
-g.save("output/figures/cystic_time_plot.png")
+g.save(f"{str(timeline_folder)}/cystic_time_plot.png")
 print(g)
 
 plot_wordcloud_neighbors_gif(
-    token_timeline_low_dim_df, plot_filename="output/wordcloud_plots/cystic.gif"
+    token_timeline_low_dim_df,
+    plot_filename=f"{str(wordcloud_folder)}/cystic.gif",
 )
 
-# ![cystic_gif here](output/wordcloud_plots/cystic.gif)
+# ![cystic_gif here](output/wordcloud_plots_2000_2020/cystic.gif)
 
 plot_wordcloud_neighbors(
-    token_timeline_low_dim_df, plot_filename="output/wordcloud_plots/cystic.png"
+    token_timeline_low_dim_df,
+    plot_filename=f"{str(wordcloud_folder)}/cystic.png",
 )
 
 # ## Cell
@@ -283,7 +302,7 @@ token_timeline_df.head()
 token_timeline_low_dim_df = project_token_timeline(
     "cell", aligned_models, model, neighbors=25
 )
-token_timeline_low_dim_df.head()
+token_timeline_low_dim_df.query("label=='main'")
 
 global_distance, local_distance = plot_local_global_distances(
     token_timeline_df, token="cell"
@@ -294,22 +313,21 @@ global_distance
 local_distance
 
 g = plot_token_timeline(token_timeline_low_dim_df)
-g.save("output/figures/celltime_plot.png")
+g.save(f"{str(timeline_folder)}/celltime_plot.png")
 print(g)
 
 plot_wordcloud_neighbors_gif(
-    token_timeline_low_dim_df, plot_filename="output/wordcloud_plots/cell.gif"
+    token_timeline_low_dim_df, plot_filename=f"{str(wordcloud_folder)}/cell.gif"
 )
 
-# ![cell gif here](output/wordcloud_plots/cell.gif)
+# ![cell gif here](output/wordcloud_plots_2000_2020/cell.gif)
 
 plot_wordcloud_neighbors(
-    token_timeline_low_dim_df, plot_filename="output/wordcloud_plots/cell.png"
+    token_timeline_low_dim_df, plot_filename=f"{str(wordcloud_folder)}/cell.png"
 )
 
 # # Conclusions - Take Home Point(s)
 
-# 1. 2008 - 2010 has a huge spike in semantic change for all the tokens I have analyzed in this notebook
+# 1. Aligning vectors helps tremendously when measuring how words change their semantic meaning. Interesting spikes in the distance is words such as cystic, interleukin-18 and like 95%ci.
 # 2. Plotting word clouds for the neighbor of each word highlights the shift these vectors are capturing
 # 3. SpaCy likes to break hyphened words apart which makes capturing words such as RNA-seq and single-cell impossible to detect. Will need to update that if I want to have those words incorporated. Plus I need to use named entity recognition (NER tagger) to group nouns together as a high portion of biological terms are two words and not one.
-# 4. Some words like cystic, p53, expression are able to show transitions in meaning which is nice. So there is some success here.

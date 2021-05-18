@@ -33,20 +33,17 @@ from scipy.linalg import orthogonal_procrustes
 import tqdm
 import plotnine as p9
 
-from biovectors_modules.word2vec_analysis_helper import (
-    get_global_distance,
-    get_local_distance,
-    window,
-)
+from biovectors_modules.word2vec_analysis_helper import get_global_local_distance
 # -
 
 # ## Load Models and Parse Performance
 
 # Align word2vec Models since cutoff year
 year_cutoff = 2000
-aligned_model_file_path = "output/aligned_word_vectors.pkl"
+latest_year = 2020
+aligned_model_file_path = f"output/aligned_word_vectors_{year_cutoff}_{latest_year}.pkl"
+aligned_models = dict()
 token_occurence_file = "output/earliest_token_occurence.tsv"
-year_distance_folder = "year_distances"
 
 # Skip 2021 as that model is too small to analyze
 # Try again December 2021
@@ -59,10 +56,9 @@ word_models = sorted(word_models, key=lambda x: int(x.stem.split("_")[1]), rever
 print(word_models)
 
 if not Path(token_occurence_file).exists():
-    word_model_dict = dict()
     earliest_token_occurence = dict()
     for model in reversed(word_models):
-        year = int(model.stem.split("_")[1])
+        year = model.stem.split("_")[1]
         model = Word2Vec.load(str(model))
         for token in model.wv.vocab.keys():
             if token not in earliest_token_occurence:
@@ -76,59 +72,62 @@ if not Path(token_occurence_file).exists():
             ).to_csv(token_occurence_file, sep="\t", index=False)
         )
 
-if not Path(aligned_model_file_path).exists():
-    word_model_dict = dict()
-    shared_tokens = set()
-    for model in word_models:
-        year = int(model.stem.split("_")[1])
-        word_model_dict[year] = Word2Vec.load(str(model))
-        if len(shared_tokens) == 0:
-            shared_tokens = set(word_model_dict[year].wv.vocab.keys())
-        else:
-            shared_tokens &= set(word_model_dict[year].wv.vocab.keys())
-
-    shared_tokens = sorted(list(shared_tokens))
-
 # ## Calculate Global and Local Distances Between Time Periods
 
 # ### Align Models via Orthogonal Procrustes
 
 if not Path(aligned_model_file_path).exists():
-    years_analyzed = sorted(list(word_model_dict.keys()), reverse=True)
-    latest_year = years_analyzed[0]
-    aligned_models = {}
 
-    # Years must be in sorted descending order
-    for year_pair in window(years_analyzed):
+    for model in tqdm.tqdm(word_models):
+        year = model.stem.split("_")[1]
+        word_model = Word2Vec.load(str(model))
 
-        year_pair_label = "_".join(map(str, year_pair[::-1]))
-
-        if year_pair[0] == latest_year:
-            aligned_models[str(year_pair[0])] = word_model_dict[year_pair[0]].wv[
-                shared_tokens
-            ]
+        if year == str(latest_year):
+            origin_tokens = sorted(list(set(word_model.wv.vocab.keys())))
+            remaining_tokens = origin_tokens
 
         else:
+            tokens = sorted(list(set(word_model.wv.vocab.keys())))
+            remaining_tokens = set(origin_tokens) & set(tokens)
 
-            aligned_models[str(year_pair[0])] = word_model_dict[year_pair[0]].wv[
-                shared_tokens
-            ]
+        data_records = []
 
-            translation_matrix, scale = orthogonal_procrustes(
-                word_model_dict[year_pair[0]].wv[shared_tokens],
-                word_model_dict[latest_year].wv[shared_tokens],
+        for tok in remaining_tokens:
+            data_entry = dict(
+                zip(
+                    [f"feat_{idx}" for idx in range(len(word_model.wv[tok]))],
+                    word_model.wv[tok],
+                )
             )
+            data_entry["token"] = tok
+            data_records.append(data_entry)
 
+        aligned_models[year] = pd.DataFrame.from_records(data_records)
+
+if not Path(aligned_model_file_path).exists():
+    years_analyzed = sorted(list(aligned_models.keys()), reverse=True)[1:]
+    latest_year = str(latest_year)
+
+    origin_df = aligned_models[latest_year].set_index("token")
+
+    # Years must be in sorted descending order
+    for year in tqdm.tqdm(years_analyzed):
+        tokens = sorted(aligned_models[year].token.tolist())
+        needs_aligned_df = aligned_models[year].set_index("token")
+
+        # align A to B subject to transition matrix being
+        # orthogonal to preserve the cosine similarities
         translation_matrix, scale = orthogonal_procrustes(
-            word_model_dict[year_pair[1]].wv[shared_tokens],
-            word_model_dict[latest_year].wv[shared_tokens],
+            needs_aligned_df.loc[tokens].values,
+            origin_df.loc[tokens].values,
         )
 
-        aligned_models[str(year_pair[1])] = (
-            word_model_dict[year_pair[1]].wv[shared_tokens] @ translation_matrix
-        )
+        # Matrix Multiplication to project year onto 2020
+        aligned_word_matrix = needs_aligned_df.loc[tokens].values @ translation_matrix
 
-    aligned_models["shared_tokens"] = shared_tokens
+        corrected_df = pd.DataFrame(aligned_word_matrix)
+        corrected_df.columns = needs_aligned_df.columns.tolist()
+        aligned_models[year] = corrected_df.assign(token=tokens)
 
 if not Path(aligned_model_file_path).exists():
     pickle.dump(aligned_models, open(aligned_model_file_path, "wb"))
@@ -136,28 +135,30 @@ if not Path(aligned_model_file_path).exists():
 # ### Calculate the Global and Local Distances between Words
 
 aligned_models = pickle.load(open(aligned_model_file_path, "rb"))
-years_analyzed = sorted(list(aligned_models.keys()), reverse=True)[1:]
+years_analyzed = sorted(list(aligned_models.keys()), reverse=True)
+origin_year = years_analyzed[-6]  # grab the earliest year to date
 n_neighbors = 25
+year_distance_folder = f"year_distances_{year_cutoff+5}_{latest_year}_replace"
 
-shared_tokens = sorted(aligned_models["shared_tokens"])
-for key in tqdm.tqdm(window(years_analyzed)):
+for key in tqdm.tqdm(years_analyzed[:-6]):
+    tokens_to_compare = sorted(aligned_models[origin_year].token.tolist())
+    shared_tokens = set(tokens_to_compare) & set(aligned_models[key].token.tolist())
+    shared_tokens = sorted(list(shared_tokens))
 
-    global_distance = get_global_distance(
-        aligned_models[key[0]], aligned_models[key[1]], aligned_models["shared_tokens"]
-    )
-
-    local_distance = get_local_distance(
-        aligned_models[key[0]],
-        aligned_models[key[1]],
-        aligned_models["shared_tokens"],
+    total_distance = get_global_local_distance(
+        aligned_models[origin_year],
+        aligned_models[key],
+        shared_tokens,
         neighbors=n_neighbors,
+        n_jobs=3,
     )
 
-    label = "_".join(reversed(key))
+    Path(f"output/{year_distance_folder}").mkdir(parents=True, exist_ok=True)
+    label = f"{origin_year}_{key}"
     output_filepath = Path(f"output/{year_distance_folder}") / Path(f"{label}_dist.tsv")
 
     (
-        global_distance.merge(local_distance)
-        .assign(shift=lambda x: x.global_dist.values - x.local_dist.values)
-        .to_csv(str(output_filepath), index=False, sep="\t")
+        total_distance.assign(
+            shift=lambda x: x.global_dist.values - x.local_dist.values
+        ).to_csv(str(output_filepath), index=False, sep="\t")
     )
