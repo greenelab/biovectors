@@ -93,6 +93,9 @@ model.verbose = False
 # Global distance measures how far a word has moved within semantic space. This measure captures how words change globally across time periods. The greater the distance the more semantic change a word has been subjected towards.
 # The word clouds depict the neighbors for each word vector. The size for each token  appears to be different but size doesn't matter in this case. Each word has equal weighting.
 
+wordcloud_folder = Path("output/wordcloud_plots_2000_2020")
+timeline_folder = Path("output/timeline_figures")
+
 # ## Are
 
 token_timeline_df = generate_timeline(year_comparison_dict, "are")
@@ -110,17 +113,17 @@ global_distance
 local_distance
 
 g = plot_token_timeline(token_timeline_low_dim_df)
-g.save("output/timeline_figures/are_time_plot.png")
+g.save(f"{str(timeline_folder)}/are_time_plot.png")
 print(g)
 
 plot_wordcloud_neighbors_gif(
-    token_timeline_low_dim_df, plot_filename="output/wordcloud_plots_2000_2020/are.gif"
+    token_timeline_low_dim_df, plot_filename=f"{str(wordcloud_folder)}/are.gif"
 )
 
 # ![are gif here](output/wordcloud_plots_2000_2020/are.gif)
 
 plot_wordcloud_neighbors(
-    token_timeline_low_dim_df, plot_filename="output/wordcloud_plots_2000_2020/are.png"
+    token_timeline_low_dim_df, plot_filename=f"{str(wordcloud_folder)}/are.png"
 )
 
 # ## Expression
@@ -142,19 +145,19 @@ global_distance
 local_distance
 
 g = plot_token_timeline(token_timeline_low_dim_df)
-g.save("output/timeline_figures/expression_time_plot.png")
+g.save(f"{str(timeline_folder)}/expression_time_plot.png")
 print(g)
 
 plot_wordcloud_neighbors_gif(
     token_timeline_low_dim_df,
-    plot_filename="output/wordcloud_plots_2000_2020/expression.gif",
+    plot_filename=f"{str(wordcloud_folder)}/expression.gif",
 )
 
 # ![expression gif here](output/wordcloud_plots_2000_2020/expression.gif)
 
 plot_wordcloud_neighbors(
     token_timeline_low_dim_df,
-    plot_filename="output/wordcloud_plots_2000_2020/expression.png",
+    plot_filename=f"{str(wordcloud_folder)}/expression.png",
 )
 
 # ## 95%ci
@@ -176,19 +179,19 @@ global_distance
 local_distance
 
 g = plot_token_timeline(token_timeline_low_dim_df)
-g.save("output/timeline_figures/95_ci_time_plot.png")
+g.save(f"{str(timeline_folder)}/95_ci_time_plot.png")
 print(g)
 
 plot_wordcloud_neighbors_gif(
     token_timeline_low_dim_df,
-    plot_filename="output/wordcloud_plots_2000_2020/95%ci.gif",
+    plot_filename=f"{str(wordcloud_folder)}/95%ci.gif",
 )
 
 # ![95%ci gif here](output/wordcloud_plots_2000_2020/95%ci.gif)
 
 plot_wordcloud_neighbors(
     token_timeline_low_dim_df,
-    plot_filename="output/wordcloud_plots_2000_2020/95%ci.png",
+    plot_filename=f"{str(wordcloud_folder)}/95%ci.png",
 )
 
 # ## interleukin-18
@@ -210,19 +213,19 @@ global_distance
 local_distance
 
 g = plot_token_timeline(token_timeline_low_dim_df)
-g.save("output/timeline_figures/interleukin18_time_plot.png")
+g.save(f"{str(timeline_folder)}/interleukin18_time_plot.png")
 print(g)
 
 plot_wordcloud_neighbors_gif(
     token_timeline_low_dim_df,
-    plot_filename="output/wordcloud_plots_2000_2020/interleukin-18.gif",
+    plot_filename=f"{str(wordcloud_folder)}/interleukin-18.gif",
 )
 
 # ![interleukin-18 gif here](output/wordcloud_plots_2000_2020/interleukin-18.gif)
 
 plot_wordcloud_neighbors(
     token_timeline_low_dim_df,
-    plot_filename="output/wordcloud_plots_2000_2020/interleukin_18.png",
+    plot_filename=f"{str(wordcloud_folder)}/interleukin_18.png",
 )
 
 # ## p53
@@ -244,17 +247,17 @@ global_distance
 local_distance
 
 g = plot_token_timeline(token_timeline_low_dim_df)
-g.save("output/timeline_figures/p53_time_plot.png")
+g.save(f"{str(timeline_folder)}/p53_time_plot.png")
 print(g)
 
 plot_wordcloud_neighbors_gif(
-    token_timeline_low_dim_df, plot_filename="output/wordcloud_plots_2000_2020/p53.gif"
+    token_timeline_low_dim_df, plot_filename=f"{str(wordcloud_folder)}/p53.gif"
 )
 
 # ![p53 gif here](output/wordcloud_plots_2000_2020/p53.gif)
 
 plot_wordcloud_neighbors(
-    token_timeline_low_dim_df, plot_filename="output/wordcloud_plots_2000_2020/p53.png"
+    token_timeline_low_dim_df, plot_filename=f"{str(wordcloud_folder)}/p53.png"
 )
 
 # ## Cystic
@@ -276,19 +279,19 @@ global_distance
 local_distance
 
 g = plot_token_timeline(token_timeline_low_dim_df)
-g.save("output/timeline_figures/cystic_time_plot.png")
+g.save(f"{str(timeline_folder)}/cystic_time_plot.png")
 print(g)
 
 plot_wordcloud_neighbors_gif(
     token_timeline_low_dim_df,
-    plot_filename="output/wordcloud_plots_2000_2020/cystic.gif",
+    plot_filename=f"{str(wordcloud_folder)}/cystic.gif",
 )
 
 # ![cystic_gif here](output/wordcloud_plots_2000_2020/cystic.gif)
 
 plot_wordcloud_neighbors(
     token_timeline_low_dim_df,
-    plot_filename="output/wordcloud_plots_2000_2020/cystic.png",
+    plot_filename=f"{str(wordcloud_folder)}/cystic.png",
 )
 
 # ## Cell
@@ -310,17 +313,17 @@ global_distance
 local_distance
 
 g = plot_token_timeline(token_timeline_low_dim_df)
-g.save("output/timeline_figures/celltime_plot.png")
+g.save(f"{str(timeline_folder)}/celltime_plot.png")
 print(g)
 
 plot_wordcloud_neighbors_gif(
-    token_timeline_low_dim_df, plot_filename="output/wordcloud_plots_2000_2020/cell.gif"
+    token_timeline_low_dim_df, plot_filename=f"{str(wordcloud_folder)}/cell.gif"
 )
 
 # ![cell gif here](output/wordcloud_plots_2000_2020/cell.gif)
 
 plot_wordcloud_neighbors(
-    token_timeline_low_dim_df, plot_filename="output/wordcloud_plots_2000_2020/cell.png"
+    token_timeline_low_dim_df, plot_filename=f"{str(wordcloud_folder)}/cell.png"
 )
 
 # # Conclusions - Take Home Point(s)

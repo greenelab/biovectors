@@ -41,6 +41,16 @@ def _calculate_distances(
     input_queue: JoinableQueue,
     output_queue: JoinableQueue,
 ):
+    """
+    This function is designed to calculate the global and local distance of ever token between two years.
+
+    Parameters:
+        year_one_model - The first year to be compared
+        year_two_model - the second year to be compared
+        neighbors - the number of neighbor tokens to use
+        input_queue - the multiprocessing queue that takes in the token to be analyzed
+        output_queue - the multiprocessing queue that takes the analysis results for output later in the program
+    """
 
     while True:
         tok = input_queue.get()
@@ -100,11 +110,13 @@ def get_global_local_distance(
     n_jobs: int = 3,
 ) -> pd.DataFrame:
     """
-    This function is designed to get the local distance of ever token between two years.
+    This function is designed to get the global and local distance of ever token between two years.
     Local distance is defined as the cosine similarity of a token's neighbor's similarity:
         Cossim(query_token_year_one_similarity, query_token_year_two_similarity)
         query_token_year_one_similarity ~ cossim(query_token_year_one, all_token_neighbors_in_both_years)
         query_token_year_two_similarity ~ cossim(query_token_year_two, all_token_neighbors_in_both_years)
+
+    Global distance is defined as cosine similarity of two tokens between two years.
 
     Parameters:
         year_one_model - The first year to be compared
@@ -174,14 +186,15 @@ def get_neighbors(
 
     else:
         word_vector_matrix = word_vector_matrix.sort_values("token")
-
-        sim_mat = 1 - cdist(
+        query_token_vector = (
             word_vector_matrix.query(f"token == {repr(query_token)}")
             .drop("token", axis=1)
-            .values,
-            word_vector_matrix.drop("token", axis=1).values,
-            "cosine",
+            .values
         )
+
+        remaining_token_vectors = word_vector_matrix.drop("token", axis=1).values
+        sim_mat = 1 - cdist(query_token_vector, remaining_token_vectors, "cosine")
+
         # sim_mat = 1 - sim_mat
         token_neighbors = sim_mat[0, :].argsort()[-neighbors - 1 :][::-1]
 
