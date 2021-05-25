@@ -73,6 +73,7 @@ file_name = "output/2000_2020_umap_model"
 
 n_neighbors = [15, 25]
 min_dist = [0.0, 0.1, 0.25, 0.5, 0.8, 0.99]
+years_to_test = [2000, 2005, 2010, 2015, 2020]
 
 for neighbor, min_d in itertools.product(n_neighbors, min_dist):
 
@@ -135,7 +136,7 @@ plot_df = pd.DataFrame(
 for key in grid_results:
     plot_df = plot_df.append(
         grid_results[key]
-        .query("year in [2000, 2005, 2015, 2020]")
+        .query(f"year in {years_to_test}")
         .groupby("year")
         .apply(lambda x: x.sample(1000, random_state=100))
         .reset_index(drop=True)
@@ -226,7 +227,7 @@ plot_df = pd.DataFrame(
 for key in grid_results:
     plot_df = plot_df.append(
         grid_results[key]
-        .query("year in [2000, 2005, 2015, 2020]")
+        .query(f"year in {years_to_test}")
         .groupby("year")
         .apply(lambda x: x.sample(1000, random_state=100))
         .reset_index(drop=True)
