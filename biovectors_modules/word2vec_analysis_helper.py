@@ -1,5 +1,7 @@
+import csv
 import itertools
-from multiprocessing import Process, JoinableQueue, Manager
+from multiprocessing import current_process, Process, JoinableQueue, Manager
+from pathlib import Path
 from typing import Any, Mapping, Sequence, Tuple, Iterable
 
 import numpy as np
@@ -8,6 +10,8 @@ from scipy.spatial.distance import cdist, pdist, squareform
 from scipy.linalg import orthogonal_procrustes
 import tqdm
 from umap.parametric_umap import ParametricUMAP
+
+QUEUE_SIZE = 500000  # Increase queue size
 
 
 def generate_timeline(
@@ -35,11 +39,12 @@ def generate_timeline(
 
 
 def _calculate_distances(
-    year_one_model: pd.DataFrame,
-    year_two_model: pd.DataFrame,
-    neighbors: int,
     input_queue: JoinableQueue,
-    output_queue: JoinableQueue,
+    global_word_matrix: np.array,
+    year_indicies: dict,
+    neighbors: int,
+    outfile: str,
+    part: int,
 ):
     """
     This function is designed to calculate the global and local distance of ever token between two years.
@@ -52,63 +57,108 @@ def _calculate_distances(
         output_queue - the multiprocessing queue that takes the analysis results for output later in the program
     """
 
-    while True:
-        tok = input_queue.get()
+    while Path(f"output/{Path(outfile).stem}_part{part.value}.tsv").exists():
+        part.value += 1
 
-        if tok is None:
-            break
+    with open(f"output/{Path(outfile).stem}_part{part.value}.tsv", "w") as outfile:
+        with tqdm.tqdm(
+            desc=f"Process {part.value-1}", position=0, leave=True
+        ) as progress_bar:
+            writer = csv.DictWriter(
+                outfile,
+                delimiter="\t",
+                fieldnames=["token", "global_dist", "local_dist", "year_pair"],
+            )
 
-        w_t1 = (
-            year_one_model.query(f"token == {repr(tok)}").drop("token", axis=1).values
-        )
-        w_t2 = (
-            year_two_model.query(f"token == {repr(tok)}").drop("token", axis=1).values
-        )
+            writer.writeheader()
 
-        model_one_neighbors = list(
-            map(lambda x: x[0], get_neighbors(year_one_model, tok, neighbors))
-        )
-        model_two_neighbors = list(
-            map(lambda x: x[0], get_neighbors(year_two_model, tok, neighbors))
-        )
+            while True:
+                token = input_queue.get()
 
-        # w_(t) and w_(t+1)
-        word_vec = np.vstack([w_t1, w_t2])
+                progress_bar.update(1)
 
-        # N(w_(t)) union N(w_(t+1))
-        neighbor_vec = np.vstack(
-            [
-                year_one_model.query(f"token in {model_one_neighbors}")
-                .set_index("token")
-                .values,
-                year_two_model.query(f"token in {model_two_neighbors}")
-                .set_index("token")
-                .values,
-            ]
-        )
+                if token is None:
+                    break
 
-        # Grab the similarity of word vectors
-        output_queue.put(
-            {
-                "token": tok,
-                "local_dist": pdist(
-                    1 - cdist(word_vec, neighbor_vec, "cosine"), "cosine"
-                ).item(),
-                "global_dist": pdist(word_vec, "cosine").item(),
-            }
-        )
+                token_indicies = list(map(lambda x: x[1], token[1]))
+                global_distances = cdist(
+                    global_word_matrix[token_indicies, :], global_word_matrix, "cosine"
+                )
 
-    # Poison pill to end the parallelization
-    output_queue.put(None)
+                # Calculate the similarity
+                global_similarity = 1 - global_distances
+
+                # Get year row
+                year_occurence = list(map(lambda x: x[0], token[1]))
+
+                # for each year comparison
+                for year_pair in itertools.combinations(year_occurence, 2):
+
+                    # First pair index
+                    year_one_index = year_indicies[year_pair[0]]
+                    row_one = year_occurence.index(year_pair[0])
+
+                    # Second Pair Index
+                    year_two_index = year_indicies[year_pair[1]]
+                    row_two = year_occurence.index(year_pair[1])
+
+                    # N(W_t))
+                    year_one_year_one_sims = global_similarity[
+                        row_one, range(*year_one_index)
+                    ].argsort()[-neighbors - 1 :][::-1]
+
+                    # N(W_t+1)
+                    year_two_year_two_sims = global_similarity[
+                        row_two, range(*year_two_index)
+                    ].argsort()[-neighbors - 1 :][::-1]
+
+                    # S(W_t) - [cossim(W_t, N(W_t)), cossim(W_t, N(W_t+1))]
+                    s_t = np.hstack(
+                        [
+                            global_similarity[row_one, range(*year_one_index)][
+                                year_one_year_one_sims[1:]
+                            ],
+                            global_similarity[row_one, range(*year_two_index)][
+                                year_two_year_two_sims[1:]
+                            ],
+                        ]
+                    )
+
+                    # S(W_t+1) - [cossim(W_t+1, N(W_t)), cossim(W_t+1, N(W_t+1))]
+                    s_t2 = np.hstack(
+                        [
+                            global_similarity[row_two, range(*year_one_index)][
+                                year_one_year_one_sims[1:]
+                            ],
+                            global_similarity[row_two, range(*year_two_index)][
+                                year_two_year_two_sims[1:]
+                            ],
+                        ]
+                    )
+
+                    # Global Distance
+                    writer.writerow(
+                        {
+                            "token": token[0],
+                            "global_dist": global_distances[
+                                row_one, token_indicies[row_two]
+                            ],  # cos-dist(w_t, w_t+1)
+                            "local_dist": cdist(
+                                s_t[np.newaxis, :], s_t2[np.newaxis, :], "cosine"
+                            ).item(),  # cos-dist(s(W_t), s(W_t+1))
+                            "year_pair": "-".join(year_pair),
+                        }
+                    )
 
 
 def get_global_local_distance(
-    year_one_model: pd.DataFrame,
-    year_two_model: pd.DataFrame,
-    shared_tokens: Sequence[str],
-    neighbors: int = 5,
-    n_jobs: int = 3,
-) -> pd.DataFrame:
+    global_word_matrix: np.array,
+    occurrence_dict: dict,
+    year_indicies: dict,
+    neighbors: int = 25,
+    n_jobs: int = 1,
+    output_file: str = "all_distance_file.tsv",
+):
     """
     This function is designed to get the global and local distance of ever token between two years.
     Local distance is defined as the cosine similarity of a token's neighbor's similarity:
@@ -119,49 +169,60 @@ def get_global_local_distance(
     Global distance is defined as cosine similarity of two tokens between two years.
 
     Parameters:
-        year_one_model - The first year to be compared
-        year_two_model - the second year to be compared
-        shared_tokens - the list of all tokens shared across the years
-        neighbors - the number of neighbor tokens to use
+        global_word_matrix - combined word matricies
+        occurrence_dict - a dictionary containing tokens as keys and list as values each value is a tuple with (year_occurred, word_matrix index)
+        year_indicies - the start and stop index of every token in a word_matrix
+        neighbors - the number of neighbor tokens to use for local distance
     """
-    token_distance = []
-    counter = 0
     with Manager() as m:
-        tok_queue = m.JoinableQueue()
-        dist_queue = m.JoinableQueue()
+        tok_queue = m.JoinableQueue(QUEUE_SIZE)
+        part_counter = m.Value("i", 1)
 
         runnable_jobs = []
         for job in range(n_jobs):
             p = Process(
                 target=_calculate_distances,
-                args=(year_one_model, year_two_model, neighbors, tok_queue, dist_queue),
+                args=(
+                    tok_queue,
+                    global_word_matrix,
+                    year_indicies,
+                    neighbors,
+                    output_file,
+                    part_counter,
+                ),
             )
             runnable_jobs.append(p)
             p.start()
 
-        for idx, tok in enumerate(shared_tokens):
-            tok_queue.put(tok)
+        token_iterator = sorted(
+            list(occurrence_dict.items()), key=lambda x: len(x[1]), reverse=True
+        )
+
+        for token in token_iterator:
+
+            # Make sure tokens have consecutive years
+            # compare the differences between each year
+            year_chain = sorted(list(map(lambda x: int(x[0]), token[1])))
+
+            # Correct length should be array minus one
+            year_len = len(year_chain) - 1
+
+            # Make sure the years are one after another
+            year_differences = sum(np.diff(year_chain) == 1)
+
+            # Skip tokens only occurring in 2020 or tokens without consecutive years
+            if len(year_chain) <= 1 or year_differences != year_len:
+                continue
+
+            tok_queue.put(token)
 
         # Poison pill to break out the parallel pipeline
         for job in range(n_jobs):
             tok_queue.put(None)
 
-        while True:
-
-            dist = dist_queue.get()
-            if dist is None:
-                counter += 1
-
-                if counter == n_jobs:
-                    break
-
-                continue
-
-            token_distance.append(dist)
-
-    total_distance = pd.DataFrame.from_records(token_distance)
-
-    return total_distance
+        # join the jobs
+        for p in runnable_jobs:
+            p.join()
 
 
 def get_neighbors(
