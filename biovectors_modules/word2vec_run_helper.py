@@ -143,11 +143,18 @@ class PubMedSentencesIterator:
             ):
                 continue
 
-            pubtator_batch_iterator = PubtatorTarIterator(
-                pubtator_batch,
-                specific_files=self.batch_mapper[pubtator_batch.name],
-                progress_bar_prefix=f"{pubtator_batch.name}",
-            )
+            if len(self.batch_mapper) == 0:
+                pubtator_batch_iterator = PubtatorTarIterator(
+                    pubtator_batch,
+                    progress_bar_prefix=f"{pubtator_batch.name}",
+                )
+
+            else:
+                pubtator_batch_iterator = PubtatorTarIterator(
+                    pubtator_batch,
+                    specific_files=self.batch_mapper[pubtator_batch.name],
+                    progress_bar_prefix=f"{pubtator_batch.name}",
+                )
 
             for doc_obj in pubtator_batch_iterator:
                 pubmed_obj_queue.put(ET.tostring(doc_obj))
@@ -178,6 +185,7 @@ class PubMedSentencesIterator:
             year = doc_obj.xpath(
                 "passage[contains(infon[@key='section_type']/text(), 'TITLE')]/infon[@key='year']/text()"
             )
+            doc_id = int(doc_obj[0].text)
 
             # Skip if year not in the filter
             # Given that user wants to filter years out
@@ -236,7 +244,7 @@ class PubMedSentencesIterator:
                 yield_text += passage_text[current_pos:].lower()
                 analyzed_text = nlp(yield_text)
 
-                sen_queue.put((int(year[0]), list(map(str, analyzed_text))))
+                sen_queue.put((int(year[0]), doc_id, list(map(str, analyzed_text))))
 
         sen_queue.put(None)  # Poison pill for sentence feeder
 
@@ -282,10 +290,10 @@ class PubMedSentencesIterator:
                     continue
 
                 if self.return_year:
-                    yield sentence[0], sentence[1]
+                    yield sentence[0], sentence[2], sentence[1]
 
                 else:
-                    yield sentence[1]
+                    yield sentence[2], sentence[1]
 
 
 def chunks(lst, n):
