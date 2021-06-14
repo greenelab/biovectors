@@ -64,8 +64,8 @@ for batch_directory in pubtator_abstract_batch:
 
 # # Grab Document Metadata
 
-if not Path("output/pmc_metadata_2.tsv.xz").exists():
-    with lzma.open("output/pmc_metadata_2.tsv.xz", "wt") as outfile:
+if not Path("output/pmc_metadata.tsv.xz").exists():
+    with lzma.open("output/pmc_metadata.tsv.xz", "wt") as outfile:
         writer = csv.DictWriter(
             outfile,
             fieldnames=[
@@ -182,6 +182,48 @@ g = (
 g.save("output/figures/post_1950_doc_count.png", dpi=500)
 print(g)
 
+full_text_doc_count_df = (
+    pubtator_central_metadata_df[
+        pubtator_central_metadata_df.apply(lambda x: "INTRO" in x.section, axis=1)
+    ]
+    .groupby("published_year")
+    .agg({"published_year": "size"})
+    .rename(index=str, columns={"published_year": "doc_count"})
+    .reset_index()
+    .astype({"published_year": int, "doc_count": int})
+)
+full_text_doc_count_df.head()
+
+g = (
+    p9.ggplot(
+        full_text_doc_count_df.query("published_year > 0& published_year < 2000"),
+        p9.aes(x="published_year", y="doc_count"),
+    )
+    + p9.geom_col(position=p9.position_dodge(width=0.9), fill="#1f78b4")
+    + p9.labs(
+        title="Number of Full Text Documents Pre 2000",
+        x="Publication Year",
+        y="Document Count",
+    )
+)
+g.save("output/figures/pre_2000_full_text_doc_count.png", dpi=500)
+print(g)
+
+g = (
+    p9.ggplot(
+        full_text_doc_count_df.query("published_year >= 2000"),
+        p9.aes(x="published_year", y="doc_count"),
+    )
+    + p9.geom_col(position=p9.position_dodge(width=0.9), fill="#1f78b4")
+    + p9.labs(
+        title="Number of Full Text Documents Post 2000",
+        x="Publication Year",
+        y="Document Count",
+    )
+)
+g.save("output/figures/post_2000_full_text_doc_count.png", dpi=500)
+print(g)
+
 # # Shared Tokens Across Time - Abstract Only
 
 tokens_by_year = defaultdict(Counter)
@@ -189,17 +231,18 @@ sentence_iterator = PubMedSentencesIterator(
     pubtator_abstract_batch,
     year_filter=list(range(1990, datetime.now().year + 1, 1)),
     return_year=True,
+    tag_entities=False,
     jobs=3,
 )
 
-if not Path("output/unique_tokens_by_year.pkl").exists():
+if not Path("output/unique_tokens_by_year_replace.pkl").exists():
     for year, sentence in tqdm.tqdm(sentence_iterator):
         tokens_by_year[year].update(Counter(sentence))
 
-if not Path("output/unique_tokens_by_year.pkl").exists():
-    pickle.dump(tokens_by_year, open("output/unique_tokens_by_year.pkl", "wb"))
+if not Path("output/unique_tokens_by_year_replace.pkl").exists():
+    pickle.dump(tokens_by_year, open("output/unique_tokens_by_year_replace.pkl", "wb"))
 else:
-    tokens_by_year = pickle.load(open("output/unique_tokens_by_year.pkl", "rb"))
+    tokens_by_year = pickle.load(open("output/unique_tokens_by_year_replace.pkl", "rb"))
 
 # ## Unique Tokens Available per Year
 
@@ -265,7 +308,7 @@ g = (
     + p9.labs(
         title="Token Overlap with 2020-2021 Abstracts",
         x="Year",
-        y="% Tokens Overlapped",
+        y="Fraction of Tokens Overlapped",
     )
 )
 g.save("output/figures/tokens_overlap_with_2020-21_abstracts.png", dpi=500)
@@ -281,21 +324,22 @@ sentence_iterator = PubMedSentencesIterator(
     section_filter=["INTRO", "METHODS", "RESULTS", "DISCUSS", "CONCL", "SUPPL"],
     year_filter=list(range(1990, datetime.now().year + 1, 1)),
     return_year=True,
+    tag_entities=False,
     jobs=3,
 )
 
-if not Path("output/unique_tokens_by_year_full_text.pkl").exists():
+if not Path("output/unique_tokens_by_year_full_text_replace.pkl").exists():
     for year, sentence in tqdm.tqdm(sentence_iterator):
         tokens_by_year_full_text[year].update(Counter(sentence))
 
-if not Path("output/unique_tokens_by_year_full_text.pkl").exists():
+if not Path("output/unique_tokens_by_year_full_text_replace.pkl").exists():
     pickle.dump(
         tokens_by_year_full_text,
-        open("output/unique_tokens_by_year_full_text.pkl", "wb"),
+        open("output/unique_tokens_by_year_full_text_replace.pkl", "wb"),
     )
 else:
     tokens_by_year_full_text = pickle.load(
-        open("output/unique_tokens_by_year_full_text.pkl", "rb")
+        open("output/unique_tokens_by_year_full_text_replace.pkl", "rb")
     )
 
 # ## Unique Tokens Available per Year
@@ -365,7 +409,7 @@ g = (
     + p9.labs(
         title="Token Overlap with 2020-2021 Full Text",
         x="Year",
-        y="% Tokens Overlapped",
+        y="Fraction of Tokens Overlapped",
     )
 )
 g.save("output/figures/tokens_overlap_with_2020-21_full_text.png", dpi=500)
