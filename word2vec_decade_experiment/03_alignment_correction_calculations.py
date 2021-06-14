@@ -15,6 +15,8 @@
 
 # # Statistics to Correct for Alignment Issues
 
+# This notebook is designed to see measure how words change through time. After alignment and distance calculations have been performed, the next step is to visualize these changes. Best way is through heatmaps that are shown below. One issue here is that alignment isn't the magic solution for the early year bias found in [02_umap_alignment_check.ipynb](../alignment_check_experiment/02_umap_alignment_check.ipynb). An approach to account for this bias is to randomly sample tokens that are shared across all years (2000-2020) to capture the variance between models. Following the sample process, I calculated z_scores for each year pair to see if I can correct for this bias.
+
 # +
 from pathlib import Path
 import itertools
@@ -204,4 +206,4 @@ z_local_plot
 # 1. Stop words are a great negative control to show how words shouldn't change through time.
 # 2. CRISPR is a great positive shows how the vector is changing through time with the change being stable after 2009.
 # 3. Interleukin 18 seems to have a change in the year 2005, but the open problem here is that 2005 may not be aligned correctly which results in this "seemingly" positive result.
-# 4. Next step here is to see if I can account for this alignment issue when working on this project.
+# 4. The random sample approach doesn't appear to fix this bias issue so I might have to find another approach to account for this early year bias.
