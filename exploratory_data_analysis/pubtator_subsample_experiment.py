@@ -145,6 +145,70 @@ g = (
 g.save("output/figures/subsampled_tokens_overlap.png", dpi=500)
 print(g)
 
+# ## High Frequency Tokens Only
+
+corrected_tokens_by_year = dict()
+for year in tqdm.tqdm(tokens_by_year):
+    year_total = sum(tokens_by_year[year].values())
+    corrected_tokens_by_year[year] = {
+        tok: tokens_by_year[year][tok] / year_total for tok in tokens_by_year[year]
+    }
+
+    freq_cutoff = (
+        pd.DataFrame.from_dict(
+            corrected_tokens_by_year[year], orient="index", columns=["freq"]
+        )
+        .reset_index()
+        .rename(columns={"index": "token"})
+        .freq.describe()["75%"]
+    )
+
+    corrected_tokens_by_year[year] = {
+        tok: corrected_tokens_by_year[year][tok]
+        for tok in tokens_by_year[year]
+        if corrected_tokens_by_year[year][tok] >= freq_cutoff
+    }
+
+# +
+data_rows = []
+reversed_tokens = list(sorted(corrected_tokens_by_year.keys()))[::-1]
+all_tokens = set(corrected_tokens_by_year[2020].keys())
+
+for query_year in reversed_tokens[2:22]:
+    np.random.seed(100)
+    avail_tokens = list(tokens_by_year[query_year].keys())
+    query_year_vocab_set = set(avail_tokens)
+    tokens_matched = all_tokens & query_year_vocab_set
+
+    data_rows.append(
+        {
+            "years": str(query_year) if query_year != 2020 else "2020",
+            "percentage_tokens_mapped": len(tokens_matched) / len(all_tokens),
+            "num_tokens_matched": len(tokens_matched),
+            "num_tokens_total": len(all_tokens),
+        }
+    )
+# -
+
+high_freq_overlap_df = pd.DataFrame.from_dict(data_rows)
+high_freq_overlap_df
+
+g = (
+    p9.ggplot(
+        high_freq_overlap_df,
+        p9.aes(x="years", y="percentage_tokens_mapped"),
+    )
+    + p9.geom_col(fill="#1f78b4")
+    + p9.coord_flip()
+    + p9.labs(
+        title="Token Overlap across the Years (High Frequency Tokens)",
+        x="Year",
+        y="Fraction of Tokens Overlapped",
+    )
+)
+g.save("output/figures/high_freq_occuring_tokens_overlap.png", dpi=500)
+print(g)
+
 # # Conclusions
 
 # 1. The small number of mismatches appear to be the result of not using a lemmatizer along with general changes in scientific publications overtime.
