@@ -21,6 +21,8 @@
 # %load_ext autoreload
 # %autoreload 2
 
+from collections import defaultdict
+import csv
 from pathlib import Path
 import pickle
 import itertools
@@ -130,35 +132,40 @@ if not Path(aligned_model_file_path).exists():
         aligned_models[year] = corrected_df.assign(token=tokens)
 
 if not Path(aligned_model_file_path).exists():
-    pickle.dump(aligned_models, open(aligned_model_file_path, "wb"))
+    with open(aligned_model_file_path, "wb") as outfile:
+        pickle.dump(aligned_models, outfile)
 
 # ### Calculate the Global and Local Distances between Words
 
 aligned_models = pickle.load(open(aligned_model_file_path, "rb"))
-years_analyzed = sorted(list(aligned_models.keys()), reverse=True)
-origin_year = years_analyzed[-6]  # grab the earliest year to date
 n_neighbors = 25
-year_distance_folder = f"year_distances_{year_cutoff+5}_{latest_year}_replace"
+year_distance_file = "output/all_year_distances.tsv"
 
-for key in tqdm.tqdm(years_analyzed[:-6]):
-    tokens_to_compare = sorted(aligned_models[origin_year].token.tolist())
-    shared_tokens = set(tokens_to_compare) & set(aligned_models[key].token.tolist())
-    shared_tokens = sorted(list(shared_tokens))
+earliest_dict = defaultdict(list)
+start_stop_years = dict()
+start = 0
+word_vectors = []
 
-    total_distance = get_global_local_distance(
-        aligned_models[origin_year],
-        aligned_models[key],
-        shared_tokens,
-        neighbors=n_neighbors,
-        n_jobs=3,
+for year in tqdm.tqdm(sorted(aligned_models.keys())):
+    # Get token occurence
+    for idx, entry in enumerate(
+        aligned_models[year].sort_values("token").token.tolist()
+    ):
+        earliest_dict[entry].append((year, idx + start))
+
+    # Get the year indicies
+    start_stop_years[year] = (start, start + aligned_models[year].shape[0])
+    start += aligned_models[year].shape[0]
+    word_vectors.append(
+        aligned_models[year].sort_values("token").set_index("token").values
     )
+global_word_vectors = np.vstack(word_vectors)
 
-    Path(f"output/{year_distance_folder}").mkdir(parents=True, exist_ok=True)
-    label = f"{origin_year}_{key}"
-    output_filepath = Path(f"output/{year_distance_folder}") / Path(f"{label}_dist.tsv")
-
-    (
-        total_distance.assign(
-            shift=lambda x: x.global_dist.values - x.local_dist.values
-        ).to_csv(str(output_filepath), index=False, sep="\t")
-    )
+get_global_local_distance(
+    global_word_vectors,
+    earliest_dict,
+    start_stop_years,
+    neighbors=25,
+    n_jobs=3,
+    output_file=year_distance_file,
+)

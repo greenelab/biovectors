@@ -6,12 +6,13 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import plotnine as p9
+from plydata import query, define, if_else, pull
 from wordcloud import WordCloud
 
 
 def plot_local_global_distances(
     timeline_df: pd.DataFrame, token: str
-) -> Tuple[p9.ggplot, p9.ggplot]:
+) -> Tuple[p9.ggplot, p9.ggplot, p9.ggplot, p9.ggplot]:
     """
     This function is designed to create a line plot of a token's global and local distance.
     The global distance represents how the token vector itself is changing across the years,
@@ -19,33 +20,117 @@ def plot_local_global_distances(
     change across the years.
 
     Parameters
-        timeline_df - a panda dataframe containing the main token along with its neighbors
+        timeline_df - a panda dataframe containing tokens with local_distance, global_distance and the corresponding z-scores
     """
+    timeline_df = timeline_df >> query("token==@token")
 
-    # Create a line plot of the global token distance
+    text_color = (
+        timeline_df
+        >> define(text_color=if_else("global_dist >= 0.7", "'black'", "'white'"))
+        >> pull("text_color")
+    )
+
     global_distance_plot = (
-        p9.ggplot(timeline_df, p9.aes(x="year_label", y="global_dist", group=1))
-        + p9.geom_point(color="#2c7fb8")
-        + p9.geom_line(color="#2c7fb8")
-        + p9.theme_seaborn("white", "notebook")
-        + p9.theme(axis_text_x=p9.element_text(rotation=45, hjust=1))
-        + p9.labs(
-            x="Timeline", y="Global Distance", title=f"'{token}' Global Distance Plot"
+        p9.ggplot(
+            timeline_df, p9.aes(x="year_origin", y="year_compared", fill="global_dist")
         )
+        + p9.geom_tile(p9.aes(width=1, height=1))
+        + p9.geom_text(
+            p9.aes(label="global_dist"), format_string="{:.2f}", color=text_color
+        )
+        + p9.labs(
+            x="Year Start",
+            y="Year End",
+            title=f"Global Distance for '{token}'",
+            fill="Global Dist",
+        )
+        + p9.theme_seaborn(style="ticks", context="paper")
+        + p9.scale_fill_cmap(limits=[0, 1])
+        + p9.theme(figure_size=(10, 8), text=p9.element_text(size=11))
     )
 
-    # Create a line plot of the local token distance
-    local_distance_plot = (
-        p9.ggplot(timeline_df, p9.aes(x="year_label", y="local_dist", group=1))
-        + p9.geom_point(color="#2c7fb8")
-        + p9.geom_line(color="#2c7fb8")
-        + p9.theme_seaborn("white", "notebook")
-        + p9.theme(axis_text_x=p9.element_text(rotation=45, hjust=1))
-        + p9.labs(
-            x="Timeline", y="Local Distance", title=f"'{token}' Local Distance Plot"
-        )
+    text_color = (
+        timeline_df
+        >> define(text_color=if_else("local_dist >= 0.7", "'black'", "'white'"))
+        >> pull("text_color")
     )
-    return global_distance_plot, local_distance_plot
+
+    local_distance_plot = (
+        p9.ggplot(
+            timeline_df, p9.aes(x="year_origin", y="year_compared", fill="local_dist")
+        )
+        + p9.geom_tile(p9.aes(width=1, height=1))
+        + p9.geom_text(
+            p9.aes(label="local_dist"), format_string="{:.2f}", color=text_color
+        )
+        + p9.labs(
+            x="Year Start",
+            y="Year End",
+            title=f"Local Distance for '{token}'",
+            fill="Local Dist",
+        )
+        + p9.theme_seaborn(style="ticks", context="paper")
+        + p9.scale_fill_cmap(limits=[0, 1])
+        + p9.theme(figure_size=(10, 8), text=p9.element_text(size=11))
+    )
+
+    text_color = (
+        timeline_df
+        >> define(text_color=if_else("z_global_dist >= 2", "'black'", "'white'"))
+        >> pull("text_color")
+    )
+
+    z_global_distance_plot = (
+        p9.ggplot(
+            timeline_df,
+            p9.aes(x="year_origin", y="year_compared", fill="z_global_dist"),
+        )
+        + p9.geom_tile(p9.aes(width=1, height=1))
+        + p9.geom_text(
+            p9.aes(label="z_global_dist"), format_string="{:.2f}", color=text_color
+        )
+        + p9.labs(
+            x="Year Start",
+            y="Year End",
+            title=f"Z-score Global Distance for '{token}'",
+            fill="Z(Global Dist)",
+        )
+        + p9.theme_seaborn(style="ticks", context="paper")
+        + p9.scale_fill_cmap(limits=[-3, 3])
+        + p9.theme(figure_size=(10, 8), text=p9.element_text(size=11))
+    )
+
+    text_color = (
+        timeline_df
+        >> define(text_color=if_else("z_local_dist >= 2", "'black'", "'white'"))
+        >> pull("text_color")
+    )
+
+    z_local_distance_plot = (
+        p9.ggplot(
+            timeline_df, p9.aes(x="year_origin", y="year_compared", fill="z_local_dist")
+        )
+        + p9.geom_tile(p9.aes(width=1, height=1))
+        + p9.geom_text(
+            p9.aes(label="z_local_dist"), format_string="{:.2f}", color=text_color
+        )
+        + p9.labs(
+            x="Year Start",
+            y="Year End",
+            title=f"Z-score Local Distance for '{token}'",
+            fill="Z(Local Dist)",
+        )
+        + p9.theme_seaborn(style="ticks", context="paper")
+        + p9.scale_fill_cmap(limits=[-3, 3])
+        + p9.theme(figure_size=(10, 8), text=p9.element_text(size=11))
+    )
+
+    return (
+        global_distance_plot,
+        local_distance_plot,
+        z_global_distance_plot,
+        z_local_distance_plot,
+    )
 
 
 def plot_token_timeline(timeline_df: pd.DataFrame) -> p9.ggplot:
