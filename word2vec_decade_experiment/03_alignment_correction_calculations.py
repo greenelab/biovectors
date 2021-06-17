@@ -43,16 +43,20 @@ from biovectors_modules.plot_helper import plot_local_global_distances
 
 # # Load Data
 
-distance_file = "output/all_year_distances.tsv.xz"
-if not Path(distance_file).exists():
+# +
+distance_file = Path("output") / Path("all_year_distances.tsv.xz")
+if not distance_file.exists():
     data_df = []
     for file in Path("output").rglob("*part*.tsv"):
         data_df.append(pd.read_csv(file, sep="\t"))
-    data_df = pd.concat(data_df).sort_values("token")
+    data_df = pd.concat(data_df)
     data_df.to_csv(distance_file, sep="\t", index=False, compression="xz")
 else:
     data_df = pd.read_csv(distance_file, sep="\t")
+
+data_df = data_df.sort_values("token")
 data_df.sample(100, random_state=100)
+# -
 
 tokens = (
     data_df
@@ -106,9 +110,7 @@ print(g)
 year_pair_mapper = z_score_df.set_index("year_pair").to_dict("index")
 
 plot_df = (
-    data_df.append(pd.read_csv("caov3_fixed.tsv", sep="\t", index_col=0)).append(
-        pd.read_csv("crispr_fixed.tsv", sep="\t", index_col=0)
-    )
+    data_df
     >> define(
         z_global_dist=lambda x: (
             x.global_dist
@@ -127,7 +129,7 @@ plot_df
 
 # # Plot Token Distances
 
-figure_dir = Path("output/distance_heatmaps")
+figure_dir = Path("output") / Path("distance_heatmaps")
 
 # ## Are Token
 

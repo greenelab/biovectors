@@ -132,7 +132,8 @@ if not Path(aligned_model_file_path).exists():
         aligned_models[year] = corrected_df.assign(token=tokens)
 
 if not Path(aligned_model_file_path).exists():
-    pickle.dump(aligned_models, open(aligned_model_file_path, "wb"))
+    with open(aligned_model_file_path, "wb") as outfile:
+        pickle.dump(aligned_models, outfile)
 
 # ### Calculate the Global and Local Distances between Words
 
