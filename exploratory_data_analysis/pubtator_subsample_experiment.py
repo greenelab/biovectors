@@ -209,6 +209,93 @@ g = (
 g.save("output/figures/high_freq_occuring_tokens_overlap.png", dpi=500)
 print(g)
 
+# # Same Journal
+
+# Move up a level in the repository, enter the folder with all the pubmed abstracts
+# grab all files with the .gz extenstion for processing
+pubtator_abstract_batch = list(Path("../pubtator_abstracts").rglob("*.gz"))
+print(len(pubtator_abstract_batch))
+
+pubtator_central_metadata_df = pd.read_csv("output/pmc_metadata.tsv.xz", sep="\t")
+print(pubtator_central_metadata_df.shape)
+pubtator_central_metadata_df.head()
+
+year_mapper_df = (
+    pubtator_central_metadata_df.query("doi.str.contains('10.1093', na=False)")
+    .groupby(["batch_folder"])
+    .agg({"batch_file": "unique"})
+    .reset_index()
+)
+year_mapper_df.head()
+
+batch_file_year_dict = {}
+for idx, row in tqdm.tqdm(year_mapper_df.iterrows()):
+    batch_file_year_dict[row["batch_folder"]] = list(row["batch_file"])
+
+tokens_by_year = defaultdict(Counter)
+sentence_iterator = PubMedSentencesIterator(
+    pubtator_abstract_batch,
+    year_filter=list(range(1990, datetime.now().year + 1, 1)),
+    batch_mapper=batch_file_year_dict,
+    return_year=True,
+    tag_entities=False,
+    jobs=3,
+)
+
+if not Path("output/single_journal_results.pkl").exists():
+    for year, sentence, doc_id in tqdm.tqdm(sentence_iterator):
+        tokens_by_year[year].update(Counter(sentence))
+
+# +
+data_rows = []
+reversed_tokens = list(sorted(tokens_by_year.keys()))[::-1]
+all_tokens = set(tokens_by_year[2020].keys())
+
+for query_year in reversed_tokens[2:22]:
+    np.random.seed(100)
+    avail_tokens = list(tokens_by_year[query_year].keys())
+    if len(avail_tokens) > len(all_tokens):
+        avail_tokens = set(
+            np.random.choice(avail_tokens, len(all_tokens), replace=False)
+        )
+        total_tokens = all_tokens
+    else:
+        total_tokens = set(
+            np.random.choice(list(all_tokens), len(avail_tokens), replace=False)
+        )
+
+    query_year_vocab_set = set(avail_tokens)
+    tokens_matched = total_tokens & query_year_vocab_set
+
+    data_rows.append(
+        {
+            "years": str(query_year) if query_year != 2020 else "2020",
+            "percentage_tokens_mapped": len(tokens_matched) / len(total_tokens),
+            "num_tokens_matched": len(tokens_matched),
+            "num_tokens_total": len(total_tokens),
+        }
+    )
+# -
+
+token_overlap_df = pd.DataFrame.from_dict(data_rows)
+token_overlap_df
+
+g = (
+    p9.ggplot(
+        equal_token_overlap_df,
+        p9.aes(x="years", y="percentage_tokens_mapped"),
+    )
+    + p9.geom_col(fill="#1f78b4")
+    + p9.coord_flip()
+    + p9.labs(
+        title="Token Overlap across the Years (One Journal)",
+        x="Year",
+        y="Fraction of Tokens Overlapped",
+    )
+)
+g.save("output/figures/same_journal_tokens_overlap.png", dpi=500)
+print(g)
+
 # # Conclusions
 
 # 1. The small number of mismatches appear to be the result of not using a lemmatizer along with general changes in scientific publications overtime.
