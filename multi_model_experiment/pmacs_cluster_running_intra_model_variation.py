@@ -25,7 +25,9 @@ def calculate_distances(
         )
         writer.writeheader()
 
-        common_vocab = set(first_model.vocab.keys()) & set(second_model.vocab.keys())
+        common_vocab = set(first_model.key_to_index.keys()) & set(
+            second_model.key_to_index.keys()
+        )
         for idx, token in enumerate(common_vocab):
             first_model_neighbors, first_model_sims = zip(
                 *first_model.most_similar(token, topn=neighbors)
@@ -65,9 +67,6 @@ def calculate_distances(
                     "year_pair": year_pair,
                 }
             )
-
-            if idx % 10000 == 0 and idx > 0:
-                outfile.flush()
 
     return []
 
