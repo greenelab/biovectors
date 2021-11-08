@@ -6,7 +6,6 @@ from pathlib import Path
 import random
 
 from gensim.models import Word2Vec, KeyedVectors
-from gensim.models.word2vec import Vocab
 from joblib import Parallel, delayed
 import numpy as np
 import pandas as pd
@@ -30,8 +29,8 @@ def calculate_distances(
 
         writer.writeheader()
         common_vocab = (
-            set(first_model.vocab.keys())
-            & set(second_model.vocab.keys())
+            set(first_model.key_to_index.keys())
+            & set(second_model.key_to_index.keys())
             & subset_tokens
         )
 
