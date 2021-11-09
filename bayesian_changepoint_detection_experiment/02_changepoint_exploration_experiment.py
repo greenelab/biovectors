@@ -27,6 +27,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import plotnine as p9
 import plydata as ply
+from upsetplot import from_memberships, UpSet, from_indicators
 import wordcloud
 # -
 
@@ -78,14 +79,17 @@ word_model_cutoff_map = {
 def examine_words_at_timepoint_range(
     word_model_map: dict, years_to_examine: list, tok: str = "the", topn: int = 25
 ):
+    word_map = dict()
     for year in years_to_examine:
-        print(year)
-        display.display(
-            word_model_map[year]["model"].wv.most_similar(
-                tok, topn=topn, clip_end=word_model_map[year]["cutoff_index"]
-            )
+        word_neighbors = word_model_map[year]["model"].wv.most_similar(
+            tok, topn=topn, clip_end=word_model_map[year]["cutoff_index"]
         )
-        print()
+        for neighbor in word_neighbors:
+            if year not in word_map:
+                word_map[year] = list()
+
+            word_map[year].append(neighbor[0])
+    return word_map
 
 
 # ## Pandemic
@@ -106,9 +110,20 @@ def examine_words_at_timepoint_range(
     )
 )
 
-examine_words_at_timepoint_range(
-    word_model_cutoff_map, [2017, 2018, 2019, 2020], tok="pandemic", topn=20
+token_map = examine_words_at_timepoint_range(
+    word_model_cutoff_map, [2017, 2018, 2019, 2020], tok="pandemic", topn=10
 )
+
+tokens = from_memberships(token_map.values())
+upset = UpSet(
+    tokens,
+    with_lines=False,
+    show_counts=False,
+    sort_by="cardinality",
+    intersection_plot_elements=0,
+)
+upset.style_subsets(present="lockdown", facecolor="blue")
+UpSet.plot(upset)
 
 # ## Rituximab
 
@@ -128,12 +143,24 @@ examine_words_at_timepoint_range(
     )
 )
 
-examine_words_at_timepoint_range(
+token_map = examine_words_at_timepoint_range(
     word_model_cutoff_map,
-    [2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007],
+    [2003, 2004, 2005, 2006, 2007],
     tok="rituximab",
-    topn=20,
+    topn=5,
 )
+
+tokens = from_memberships(token_map.values())
+upset = UpSet(
+    tokens,
+    with_lines=False,
+    show_counts=False,
+    sort_by="cardinality",
+    intersection_plot_elements=0,
+)
+upset.style_subsets(present="methotrexate", facecolor="#1b9e77")
+upset.style_subsets(present="chemotherapeutic", facecolor="#7570b3")
+UpSet.plot(upset)
 
 # ## Asthma
 
@@ -153,12 +180,45 @@ examine_words_at_timepoint_range(
     )
 )
 
-examine_words_at_timepoint_range(
+token_map = examine_words_at_timepoint_range(
     word_model_cutoff_map,
-    [2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007],
+    [2000, 2001, 2002, 2003, 2004],
     tok="asthmatics",
-    topn=20,
+    topn=5,
 )
+token_map
+
+tokens = from_memberships(token_map.values())
+upset = UpSet(
+    tokens,
+    with_lines=False,
+    show_counts=False,
+    sort_by="cardinality",
+    intersection_plot_elements=0,
+)
+upset.style_subsets(present="myocardial_infarction", facecolor="#1b9e77")
+upset.style_subsets(present="chemotaxis", facecolor="#7570b3")
+UpSet.plot(upset)
+
+token_map = examine_words_at_timepoint_range(
+    word_model_cutoff_map,
+    [2004, 2005, 2006, 2007],
+    tok="asthmatics",
+    topn=5,
+)
+token_map
+
+tokens = from_memberships(token_map.values())
+upset = UpSet(
+    tokens,
+    with_lines=False,
+    show_counts=False,
+    sort_by="cardinality",
+    intersection_plot_elements=0,
+)
+upset.style_subsets(present="newborn", facecolor="#1b9e77")
+upset.style_subsets(present="balf", facecolor="#7570b3")
+UpSet.plot(upset)
 
 # ## Individual Year Changes
 
@@ -180,26 +240,44 @@ examine_words_at_timepoint_range(
     )
 )
 
-examine_words_at_timepoint_range(
+token_map = examine_words_at_timepoint_range(
     word_model_cutoff_map,
-    [2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007],
+    [2000, 2001, 2002, 2003, 2004],
     tok="2001",
-    topn=20,
+    topn=5,
 )
 
-examine_words_at_timepoint_range(
+tokens = from_memberships(token_map.values())
+upset = UpSet(
+    tokens,
+    with_lines=False,
+    show_counts=False,
+    sort_by="cardinality",
+    intersection_plot_elements=0,
+)
+upset.style_subsets(present="city", facecolor="#1b9e77")
+upset.style_subsets(present="campaign", facecolor="#7570b3")
+UpSet.plot(upset)
+
+token_map = examine_words_at_timepoint_range(
     word_model_cutoff_map,
-    [2001, 2002, 2003, 2004, 2005, 2006, 2007],
+    [2001, 2002, 2003, 2004, 2005],
     tok="2002",
-    topn=20,
+    topn=5,
 )
+token_map
 
-examine_words_at_timepoint_range(
-    word_model_cutoff_map,
-    [2001, 2002, 2003, 2004, 2005, 2006, 2007],
-    tok="2003",
-    topn=20,
+tokens = from_memberships(token_map.values())
+upset = UpSet(
+    tokens,
+    with_lines=False,
+    show_counts=False,
+    sort_by="cardinality",
+    intersection_plot_elements=0,
 )
+upset.style_subsets(present="british_journal_of_cancer", facecolor="#1b9e77")
+upset.style_subsets(present="april", facecolor="#7570b3")
+UpSet.plot(upset)
 
 # # Take home points
 
