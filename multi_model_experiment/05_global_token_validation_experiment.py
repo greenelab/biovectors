@@ -17,6 +17,9 @@
 
 # Early year models are unstable there isn't a whole lot of data to appropriately train word2vec model. [04_novel_distance_calculations](04_novel_distance_calculations.ipynb) notebook was designed to create a metric that can account for this problem.
 # This notebook is designed to test if the newly constructed metric actually fixes the problem via a global comparison using all tokens present in 2000 through 2020.
+#
+# *Note*: compare the global qst metric to one of the earlier year models. The comparison should be similar to the one I did on a global scale.
+# Goal here is to show that this metric works better to handle the model instability that occurs.
 
 # +
 from pathlib import Path

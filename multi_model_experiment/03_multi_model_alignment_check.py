@@ -37,7 +37,7 @@ from biovectors_modules.word2vec_analysis_helper import align_word2vec_models
 
 word_models = list(Path("output/models").rglob("*model"))
 word_models = sorted(word_models, key=lambda x: x.stem)
-word_model_filter = list(filter(lambda x: "2000" in x.stem, word_models))
+word_model_filter = list(filter(lambda x: "2001" in x.stem, word_models))
 
 words_to_visualize = []
 most_frequent_tokens = []
@@ -45,9 +45,8 @@ most_frequent_tokens = []
 # +
 for model_file in tqdm.tqdm(word_model_filter):
     word_model = Word2Vec.load(str(model_file))
-    word_model.init_sims()
     most_frequent_tokens.append(
-        {word: word_model.wv[word] for word in word_model.wv.index2word[:100]}
+        {word: word_model.wv[word] for word in word_model.wv.index_to_key[:100]}
     )
     words_to_visualize.append(np.array(word_model.wv.vectors))
 
@@ -56,7 +55,7 @@ words_to_visualize = np.vstack(words_to_visualize)
 
 # # Train the UMAP model on Unaligned Vectors
 
-file_name = "output/umap_models/2000_no_alignment_replace"
+file_name = "output/umap_models/2001_no_alignment"
 tokens = list(most_frequent_tokens[0].keys())
 words_subset = np.vstack(
     list(map(lambda x: np.vstack(list(x.values())), most_frequent_tokens))
@@ -91,7 +90,7 @@ mapped_df.head()
 g = (
     p9.ggplot(mapped_df, p9.aes(x="umap1", y="umap2", fill="model_iter"))
     + p9.geom_point()
-    + p9.labs(title="100 Most Frequently Occuring Tokens in 2000")
+    + p9.labs(title="100 Most Frequently Occuring Tokens in 2001")
 )
 print(g)
 
@@ -104,16 +103,16 @@ most_frequent_tokens = []
 # +
 for model_file in tqdm.tqdm(word_model_filter):
     word_model = Word2Vec.load(str(model_file))
-    aligned_model = align_word2vec_models(base_model.wv, word_model.wv)
+    aligned_model = align_word2vec_models(base_model, word_model)
     most_frequent_tokens.append(
-        {word: aligned_model.wv[word] for word in aligned_model.wv.index2word[:100]}
+        {word: aligned_model.wv[word] for word in aligned_model.wv.index_to_key[:100]}
     )
     words_to_visualize.append(np.array(aligned_model.wv.vectors))
 
 words_to_visualize = np.vstack(words_to_visualize)
 # -
 
-file_name = "output/umap_models/2000_with_alignment_replace"
+file_name = "output/umap_models/2001_with_alignment"
 tokens = list(most_frequent_tokens[0].keys())
 words_subset = np.vstack(
     list(map(lambda x: np.vstack(list(x.values())), most_frequent_tokens))
@@ -148,7 +147,7 @@ mapped_df.head()
 g = (
     p9.ggplot(mapped_df, p9.aes(x="umap1", y="umap2", fill="model_iter"))
     + p9.geom_point()
-    + p9.labs(title="100 Most Frequently Occuring Tokens in 2000")
+    + p9.labs(title="100 Most Frequently Occuring Tokens in 2001")
 )
 print(g)
 
@@ -158,7 +157,7 @@ g = (
         p9.aes(x="umap1", y="umap2", fill="model_iter", alpha="opacity"),
     )
     + p9.geom_point()
-    + p9.labs(title="the in 2000")
+    + p9.labs(title="the in 2001")
     + p9.guides(alpha=False)
 )
 print(g)
@@ -169,7 +168,7 @@ g = (
         p9.aes(x="umap1", y="umap2", fill="model_iter", alpha="opacity"),
     )
     + p9.geom_point()
-    + p9.labs(title="'of' in 2000")
+    + p9.labs(title="'of' in 2001")
     + p9.guides(alpha=False)
 )
 print(g)
