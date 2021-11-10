@@ -68,9 +68,7 @@ class PubtatorTarIterator:
         else:
             try:
                 # Iterate through specific docuemnt batches within Pubtator
-                for file in tqdm.tqdm(
-                    self.specific_files, desc=f"{self.progress_bar_prefix}"
-                ):
+                for file in self.specific_files:
 
                     doc_iterator = ET.iterparse(
                         self.pubtator_tar_directory.extractfile(file),

@@ -1,9 +1,11 @@
+import copy
 import csv
 import itertools
 from multiprocessing import current_process, Process, JoinableQueue, Manager
 from pathlib import Path
 from typing import Any, Mapping, Sequence, Tuple, Iterable
 
+from gensim.models import Word2Vec, KeyedVectors
 import numpy as np
 import pandas as pd
 from scipy.spatial.distance import cdist, pdist, squareform
@@ -12,6 +14,51 @@ import tqdm
 from umap.parametric_umap import ParametricUMAP
 
 QUEUE_SIZE = 500000  # Increase queue size
+
+
+def align_word2vec_models(base_model: Word2Vec, model_to_align: Word2Vec) -> Word2Vec:
+    """
+    This function is designed to align word vectors onto the base word vector model.
+    based on https://gist.github.com/quadrismegistus/09a93e219a6ffc4f216fb85235535faf
+    """
+    # Insure that the original object passed doesn't get changed
+    # base_model = copy.deepcopy(base_model)
+    model_to_align = copy.deepcopy(model_to_align)
+
+    # Get shared vocabulary words
+    base_model_vocab = set(base_model.wv.key_to_index.keys())
+    model_to_align_vocab = set(model_to_align.wv.key_to_index.keys())
+
+    # Sort based on frequency of both models
+    common_vocab = base_model_vocab & model_to_align_vocab
+    common_vocab = list(common_vocab)
+    common_vocab.sort(
+        key=lambda word: base_model.wv.get_vecattr(word, "count")
+        + model_to_align.wv.get_vecattr(word, "count"),
+        reverse=True,
+    )
+
+    # Resort word vectors based on frequency and
+    # Replace the vectors themselves
+    model_to_align_indicies = [
+        model_to_align.wv.key_to_index[word] for word in common_vocab
+    ]
+    old_arr = model_to_align.wv.get_normed_vectors()
+    new_arr = np.array([old_arr[index] for index in model_to_align_indicies])
+
+    # Calculate orthogonal procrustes
+    translation_matrix, _ = orthogonal_procrustes(new_arr, base_model.wv[common_vocab])
+    model_to_align.wv.vectors = new_arr @ translation_matrix
+
+    # Update the wordvector object to reflect new changes
+    model_to_align.wv.index_to_key = common_vocab
+    # old_vocab = model_to_align.wv.key_to_index
+    model_to_align.wv.key_to_index = {
+        word: new_index for new_index, word in enumerate(common_vocab)
+    }
+
+    # Return updated keyedvectors
+    return model_to_align
 
 
 def generate_timeline(
