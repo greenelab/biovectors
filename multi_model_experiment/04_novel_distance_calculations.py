@@ -43,6 +43,7 @@ from biovectors_modules.word2vec_analysis_helper import align_word2vec_models
 
 # -
 
+# Method only used for this notebook
 def return_global_plot(year_model, tok="are", limits=(0, 1), inter_or_intra="intra"):
     g = (
         p9.ggplot(
@@ -92,7 +93,8 @@ for model_file in tqdm.tqdm(word_model_filter):
 # ## Intra Model Calculations
 
 intra_year_models = []
-for idx, file in enumerate(Path("output/intra_models").rglob("*.tsv")):
+for idx, file in enumerate(Path("output/intra_models").rglob("*.tsv.xz")):
+    print(file)
     intra_year_model_df = pd.read_csv(str(file), sep="\t") >> ply_tdy.extract(
         "year_pair", into="year", regex=r"(\d+)_", convert=True
     )
@@ -100,12 +102,14 @@ for idx, file in enumerate(Path("output/intra_models").rglob("*.tsv")):
     intra_year_models.append(intra_year_model_df)
 
     if Path(
-        f"output/averaged_intra_models/average_{str(Path(file).stem)}.tsv"
+        f"output/averaged_intra_models/average_{str(Path(file.stem).stem)}.tsv"
     ).exists():
         continue
 
     averaged_intra_year_models = dict()
-    for idx, row in tqdm.tqdm(intra_year_model_df.iterrows(), desc="intra_df"):
+    for idx, row in tqdm.tqdm(
+        intra_year_model_df.iterrows(), desc=f"intra_df: {str(file)}"
+    ):
         if (row["tok"], int(row["year"])) not in averaged_intra_year_models:
             averaged_intra_year_models[(row["tok"], int(row["year"]))] = dict(
                 global_distance=[], local_distance=[]
@@ -119,7 +123,7 @@ for idx, file in enumerate(Path("output/intra_models").rglob("*.tsv")):
         ].append(row["local_distance"])
 
     with open(
-        f"output/averaged_intra_models/average_{str(Path(file).stem)}.tsv", "w"
+        f"output/averaged_intra_models/average_{str(Path(file.stem).stem)}.tsv", "w"
     ) as outfile:
         fieldnames = [
             "average_global_distance",
@@ -133,7 +137,7 @@ for idx, file in enumerate(Path("output/intra_models").rglob("*.tsv")):
         writer.writeheader()
 
         for tok, year in tqdm.tqdm(
-            averaged_intra_year_models, desc="summary_intra_writer"
+            averaged_intra_year_models, desc=f"summary_intra_writer: {str(file.stem)}"
         ):
             writer.writerow(
                 {
@@ -269,10 +273,13 @@ for idx, file in enumerate(Path("inter_models").rglob("*.tsv")):
 # Where x and y are a particular year and $x \neq y$.
 # If $x = y$ then this estimate would be 1.
 #
-# Another idea is to penalize the distance metric based on amount of differentiation (measured above).
-# $$\hat{Distance} = Distance_{inter\_year(x,y)} * \frac{Distance_{inter\_year(x,y)}}{Distance_{inter\_year(x,y)} + Distance_{intra\_year(x)} + Distance_{intra\_year(y)}}$$
+# However, I cant use this metric for bayesian changepoint detection as this metric would be completely dominated by
+# the frequency ratio metric.
+# In other words the above metric is bound between 0 and 1, while the frequency ratio is bounded between 0 and infinity.
+# Therefore, the change metric heavily depends on frequency to work. This is bad as there are words that have undergone a semantic change, but have yet to have a change in frequency to detect said change (e.g. increase).
 #
-# Not sure which metric is correct, but next notebook will find out.
+# To account for this I'm using the following metric instead:
+# $$\hat{Distance} = \frac{Distance_{inter\_year(x,y)}}{Distance_{intra\_year(x)} + Distance_{intra\_year(y)}}$$
 
 intra_year_averaged = pd.concat(
     [
@@ -335,7 +342,6 @@ for year in unique_years:
         global_distance_qst = global_inter_top / (
             global_inter_top + global_intra_bottom
         )
-        global_times_distance_qst = global_inter_top * global_distance_qst
 
         # local intra year variation
         # intra year variaion
@@ -345,16 +351,14 @@ for year in unique_years:
         )
 
         local_distance_qst = local_inter_top / (local_inter_top + local_intra_bottom)
-        local_times_distance_qst = local_inter_top * local_distance_qst
 
         data.append(
             {
                 "tok": row["tok"],
                 "original_global_distance": global_inter_top,
                 "global_distance_qst": global_distance_qst,
-                "global_times_distance_qst": global_times_distance_qst,
                 "local_distance_qst": local_distance_qst,
-                "local_times_distance_qst": local_times_distance_qst,
+                "ratio_metric": global_inter_top / global_intra_bottom,
                 "year_1": row["year1"],
                 "year_2": row["year2"],
             }
