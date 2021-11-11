@@ -5,79 +5,16 @@ import math
 from pathlib import Path
 import random
 
-from gensim.models import Word2Vec, KeyedVectors
+from gensim.models import KeyedVectors
 from joblib import Parallel, delayed
-import numpy as np
 import pandas as pd
 import tqdm
 
-
-def calculate_distances(
-    first_model, second_model, neighbors: int = 25, year_pair: str = "year_pair_here"
-):
-    if Path(f"output/temp/{year_pair}.tsv").exists():
-        return []
-
-    # Have to write to file as RAM cannot hold all word pairs
-    with open(f"output/temp/{year_pair}.tsv", "w") as outfile:
-
-        writer = csv.DictWriter(
-            outfile,
-            delimiter="\t",
-            fieldnames=["tok", "global_distance", "local_distance", "year_pair"],
-        )
-
-        writer.writeheader()
-        common_vocab = (
-            set(first_model.key_to_index.keys())
-            & set(second_model.key_to_index.keys())
-            & subset_tokens
-        )
-
-        for token in tqdm.tqdm(common_vocab):
-            first_model_neighbors, first_model_sims = zip(
-                *first_model.most_similar(token, topn=neighbors)
-            )
-            second_model_neighbors, second_model_sims = zip(
-                *second_model.most_similar(token, topn=neighbors)
-            )
-            years_neighbors_union = np.vstack(
-                [
-                    first_model[first_model_neighbors],
-                    second_model[second_model_neighbors],
-                ]
-            )
-            first_neighborhood_sims = KeyedVectors.cosine_similarities(
-                first_model[token], years_neighbors_union
-            )
-            second_neighborhood_sims = KeyedVectors.cosine_similarities(
-                second_model[token], years_neighbors_union
-            )
-
-            writer.writerow(
-                {
-                    "tok": token,
-                    "global_distance": 1
-                    - (
-                        KeyedVectors.cosine_similarities(
-                            first_model[token], second_model[token][:, np.newaxis].T
-                        ).item()
-                    ),
-                    "local_distance": 1
-                    - (
-                        KeyedVectors.cosine_similarities(
-                            first_neighborhood_sims,
-                            second_neighborhood_sims[:, np.newaxis].T,
-                        ).item()
-                    ),
-                    "year_pair": year_pair,
-                }
-            )
-
-    return []
-
+from .distance_calculation_helper import calculate_distances
 
 if __name__ == "__main__":
+    # This is a hack to get results before committee meeting
+    # This block will be removed afterwards
     tokens = pd.read_csv("output/subsetted_tokens.tsv", sep="\t")
     global subset_tokens
     subset_tokens = set(tokens.tok.tolist())
@@ -112,6 +49,7 @@ if __name__ == "__main__":
                 delayed(calculate_distances)(
                     KeyedVectors.load(str(aligned_vector[0])),
                     KeyedVectors.load(str(aligned_vector[1])),
+                    subset_tokens,
                     year_pair=(
                         f"{aligned_vector[0].stem}-{aligned_vector[1].stem}"
                         if int(aligned_vector[0].stem.split("_")[0])

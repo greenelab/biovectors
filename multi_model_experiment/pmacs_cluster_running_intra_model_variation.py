@@ -5,71 +5,12 @@ import math
 from pathlib import Path
 import random
 
-from gensim.models import Word2Vec, KeyedVectors
-from gensim.models.word2vec import Vocab
+from gensim.models import KeyedVectors
 from joblib import Parallel, delayed
-import numpy as np
 import pandas as pd
 import tqdm
 
-
-def calculate_distances(
-    first_model, second_model, neighbors: int = 25, year_pair: str = "year_pair_here"
-):
-    with open(f"output/temp/{year_pair}.tsv", "w") as outfile:
-
-        writer = csv.DictWriter(
-            outfile,
-            delimiter="\t",
-            fieldnames=["tok", "global_distance", "local_distance", "year_pair"],
-        )
-        writer.writeheader()
-
-        common_vocab = set(first_model.key_to_index.keys()) & set(
-            second_model.key_to_index.keys()
-        )
-        for idx, token in enumerate(common_vocab):
-            first_model_neighbors, first_model_sims = zip(
-                *first_model.most_similar(token, topn=neighbors)
-            )
-            second_model_neighbors, second_model_sims = zip(
-                *second_model.most_similar(token, topn=neighbors)
-            )
-            years_neighbors_union = np.vstack(
-                [
-                    first_model[first_model_neighbors],
-                    second_model[second_model_neighbors],
-                ]
-            )
-            first_neighborhood_sims = KeyedVectors.cosine_similarities(
-                first_model[token], years_neighbors_union
-            )
-            second_neighborhood_sims = KeyedVectors.cosine_similarities(
-                second_model[token], years_neighbors_union
-            )
-
-            writer.writerow(
-                {
-                    "tok": token,
-                    "global_distance": 1
-                    - (
-                        KeyedVectors.cosine_similarities(
-                            first_model[token], second_model[token][:, np.newaxis].T
-                        ).item()
-                    ),
-                    "local_distance": 1
-                    - (
-                        KeyedVectors.cosine_similarities(
-                            first_neighborhood_sims,
-                            second_neighborhood_sims[:, np.newaxis].T,
-                        ).item()
-                    ),
-                    "year_pair": year_pair,
-                }
-            )
-
-    return []
-
+from .distance_calculation_helper import calculate_distances
 
 if __name__ == "__main__":
 
