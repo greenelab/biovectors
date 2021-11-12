@@ -17,9 +17,6 @@
 
 # Early year models are unstable as there isn't a whole lot of data to appropriately train a word2vec model. [04_novel_distance_calculations](04_novel_distance_calculations.ipynb) notebook was designed to create a metric that can account for this problem.
 # This notebook is designed to test if the newly constructed metric actually fixes the problem via a global comparison using all tokens present in 2000 through 2020.
-#
-# *Note*: compare the global qst metric to one of the earlier year models. The comparison should be similar to the one I did on a global scale.
-# Goal here is to show that this metric works better to handle the model instability that occurs.
 
 # +
 from pathlib import Path
@@ -59,7 +56,7 @@ full_token_set_df = pd.concat(
 print(full_token_set_df.shape)
 full_token_set_df.head()
 
-# ## Load individual Models for a couple years to see the change
+# ## Load the first indexed model from each year to show the difference
 
 all_inter_year_models = list(Path("output/inter_models").rglob("*tsv"))
 
@@ -97,6 +94,8 @@ percent_diff_one_year = (
 percent_diff_one_year
 
 # # Does distance increase across the years?
+
+# ## Calculate an average of all words for all trained Models
 
 all_distance_df = (
     full_token_set_df
@@ -151,6 +150,14 @@ pct_diff_df = (
     )
 )
 pct_diff_df
+
+# ## Plot the differences to see if metric eases some of the earlier year instability
+
+# This plot here is designed to show on a global scale the differences between my devised metrics in [04_novel_distance_calculations.ipynb](04_novel_distance_calculations.ipynb) and the traditional approach.
+# The dark colored lines are the three different metrics I devised (Qst, Qst * distance and Ratio).
+# The pink line is the traditional way where approaches only use one model per year and just align.
+#
+# Overall, one can see that without a correction factor a lot of words in the earlier years will appear to be a lot different than words in later years (small amount of document availability).
 
 (
     p9.ggplot(

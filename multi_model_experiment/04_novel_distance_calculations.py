@@ -15,6 +15,16 @@
 
 # # Statistical Test for Multi-Model Variation
 
+# After confirming that aligning multiple word2vec models is a success [03_multi_model_alignment_check.ipynb](03_multi_model_alignment_check.ipynb), the next step is to construct a metric that accounts for intra and inter year variation.
+#
+# Typically, the way to compare words words is to use cosine distance, which measures the distance between two vectors by looking at the angle between two vectors.
+# A more common name for this would be [cosine similarity](https://en.wikipedia.org/wiki/Cosine_similarity); however, the difference here is that cosine distance shifts the range from -1 to 1 to 0 to 2 (1 - cosine similarity).
+#
+# Regarding this project, I'm using cosine distance to see how a word changes across time.
+# I based this comparison off of two metrics defined by authors in [this paper](http://arxiv.org/abs/1606.02821).
+# - Global distance is defined as the cosine distance between words in year with their second year counterparts
+# - Local distance is defined as the cosine distance of a word's similarity to its neighbors across time
+
 # +
 # %load_ext autoreload
 # %autoreload 2
@@ -79,12 +89,12 @@ for model_file in tqdm.tqdm(word_model_filter):
 # # Inter and Intra Variation calculation
 
 # Refer to the following scripts in order to perform inter and intra word2vec calculations:
-# 1. pmacs_cluster_running_inter_model_variation.py
-# 2. pmacs_cluster_running_intra_model_variation.py
+# 1. [pmacs_cluster_running_inter_model_variation.py](pmacs_cluster_running_inter_model_variation.py)
+# 2. [pmacs_cluster_running_intra_model_variation.py](pmacs_cluster_running_intra_model_variation.py)
 
 # # Are word2vec models unstable?
 
-# Due to the nature of negative sampling word2vec models generate weights arbitrarily.
+# Due to the nature of negative sampling, word2vec models generat weights arbitrarily.
 # This is undesired as a token in the year 2000 cannot be compared with a token in 2001.
 # A solution is to use orthogonal procrustes to align word2vec models; however, variation could still remain in these word models.
 # To measure this variation I trained 10 unique word2vec models on abstracts for each given year and then calculated global and local distances between every word2vec model pair (10 choose 2).

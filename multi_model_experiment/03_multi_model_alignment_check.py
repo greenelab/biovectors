@@ -15,6 +15,12 @@
 
 # # Calculate Statistics for Multiple Models per Year
 
+# Word2Vec is an unstable model as they arbitrarily generate word vectors [10.1007/s00799-019-00271-6](http://doi.org/10.1007/s00799-019-00271-6).
+# This means word vectors from two different word2vec models cannot be compared directly.
+# A way to fix this issue is to perform a task called alignment, which involves aligning multiple word2vec models onto the same vector space.
+# The approach to align word vector models is called orthogonal procrustes, which is a linear algebra technique that aligns two vector spaces while preserving the orthogonal property of vectors.
+# This notebook designed to confirm that the alignment step works for these models.
+
 # +
 # %load_ext autoreload
 # %autoreload 2
