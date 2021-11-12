@@ -122,7 +122,7 @@ if not Path("output/pmc_metadata.tsv.xz").exists():
 
 # # Analyze Abstract/Full Text Dataset
 
-pubtator_central_metadata_df = pd.read_csv("output/pmc_metadata_2.tsv.xz", sep="\t")
+pubtator_central_metadata_df = pd.read_csv("output/pmc_metadata.tsv.xz", sep="\t")
 print(pubtator_central_metadata_df.shape)
 pubtator_central_metadata_df.head()
 
