@@ -85,10 +85,10 @@ for model_file in tqdm.tqdm(word_model_filter):
 # # Are word2vec models unstable?
 
 # Due to the nature of negative sampling word2vec models generate weights arbitrarily.
-# This is undesired as a tok in the year 2000 cannot be compared with a tok in 2001.
+# This is undesired as a token in the year 2000 cannot be compared with a token in 2001.
 # A solution is to use orthogonal procrustes to align word2vec models; however, variation could still remain in these word models.
 # To measure this variation I trained 10 unique word2vec models on abstracts for each given year and then calculated global and local distances between every word2vec model pair (10 choose 2).
-# From there I analyzed variation with each year (term intra-year variation).
+# From there I analyzed variation within each year (term intra-year variation).
 
 # ## Intra Model Calculations
 
