@@ -39,30 +39,34 @@ import bayesian_changepoint_detection.offline_changepoint_detection as offcd
 
 if not Path("output/all_tok_frequencies.tsv").exists():
     data = []
-    for model in tqdm.tqdm(sorted(list(Path("models").rglob("*/*_0.model")))):
+    for model in tqdm.tqdm(
+        sorted(
+            list(Path("../multi_model_experiment/output/models").rglob("*/*_0.model"))
+        )
+    ):
         wv_model = Word2Vec.load(str(model))
         word_freq_df = pd.DataFrame.from_records(
             [
                 {
                     "tok": tok,
-                    "word_count": wv_model.wv.vocab[tok].count,
+                    "word_count": wv_model.wv.get_vecattr(tok, "count"),
                     "year": re.search(r"(\d+)_0", str(model)).group(1),
                 }
-                for tok in wv_model.wv.vocab.keys()
+                for tok in wv_model.wv.index_to_key
             ]
         )
         total_count = word_freq_df.word_count.sum()
         word_freq_df = word_freq_df >> ply.define(frequency=f"word_count/{total_count}")
         data.append(word_freq_df)
 
-if not Path("output/all_tok_frequencies.tsv").exists():
+if not Path("output/all_tok_frequencies.tsv.xz").exists():
     all_word_freq_df = pd.concat(data)
     all_word_freq_df.dropna().to_csv(
-        "output/all_tok_frequencies.tsv", sep="\t", index=False
+        "output/all_tok_frequencies.tsv.xz", sep="\t", index=False, compression="xz"
     )
 else:
     all_word_freq_df = (
-        pd.read_csv("output/all_tok_frequencies.tsv", sep="\t")
+        pd.read_csv("output/all_tok_frequencies.tsv.xz", sep="\t")
         .dropna()
         .astype({"year": int})
     )
@@ -81,7 +85,10 @@ all_word_pct_change_df = (
     >> ply.query(f"tok in {token_filter_list}")
     >> ply.group_by("tok")
     >> ply.arrange("year")
-    >> ply.define(freq_pct_change="frequency.pct_change()")
+    >> ply.define(
+        freq_pct_change="frequency.pct_change()",
+        frequency_ratio=lambda x: x.frequency / x.shift(1).frequency,
+    )
     >> ply.ungroup()
     >> ply.call(".dropna")
     >> ply.define(year=lambda x: x["year"].apply(lambda y: f"{int(y)-1}-{y}"))
@@ -127,9 +134,11 @@ merged_frequency_df = (
         "tok",
         "original_global_distance",
         "global_distance_qst",
+        "ratio_metric",
         "year_pair",
         "frequency",
         "freq_pct_change",
+        "frequency_ratio",
     )
 )
 merged_frequency_df
@@ -138,7 +147,10 @@ change_metric_df = (
     merged_frequency_df
     >> ply.group_by("tok")
     >> ply.arrange("year_pair")
-    >> ply.define(change_metric="global_distance_qst + freq_pct_change")
+    >> ply.define(
+        change_metric_qst="global_distance_qst + freq_pct_change",
+        change_metric_ratio="ratio_metric + frequency_ratio",
+    )
     >> ply.ungroup()
 )
 change_metric_df
@@ -150,10 +162,13 @@ change_metric_df
 if not Path("output/bayesian_changepoint_data.tsv", sep="\t").exists():
     change_point_results = []
     for tok, tok_series_df in tqdm.tqdm(change_metric_df.groupby("tok")):
-        change_metric = np.insert(tok_series_df >> ply.pull("change_metric"), 0, 0)
+
+        change_metric_ratio = np.insert(
+            tok_series_df >> ply.pull("change_metric_ratio"), 0, 1
+        )
         Q, P, Pcp = offcd.offline_changepoint_detection(
-            change_metric,
-            partial(offcd.const_prior, l=(len(change_metric) + 1)),
+            change_metric_ratio,
+            partial(offcd.const_prior, l=(len(change_metric_ratio) + 1)),
             offcd.gaussian_obs_log_likelihood,
             truncate=-40,
         )
@@ -182,7 +197,7 @@ else:
     change_point_df = pd.read_csv("output/bayesian_changepoint_data.tsv", sep="\t")
 change_point_df.head()
 
-change_point_df >> ply.arrange("-changepoint_prob") >> ply.slice_rows(30)
+(change_point_df >> ply.arrange("-changepoint_prob") >> ply.slice_rows(30))
 
 (
     p9.ggplot(change_point_df >> ply.query("tok=='coronavirus'"))
@@ -192,7 +207,7 @@ change_point_df >> ply.arrange("-changepoint_prob") >> ply.slice_rows(30)
     + p9.coord_flip()
     + p9.theme_seaborn("white")
     + p9.labs(
-        x="years",
+        x="Year Shift",
         y="Probability of Changepoint",
         title="Changepoint Prediction for Token ('coronavirus')",
     )
@@ -206,7 +221,7 @@ change_point_df >> ply.arrange("-changepoint_prob") >> ply.slice_rows(30)
     + p9.coord_flip()
     + p9.theme_seaborn("white")
     + p9.labs(
-        x="years",
+        x="Year Shift",
         y="Probability of Changepoint",
         title="Changepoint Prediction for Token ('copyright')",
     )
@@ -220,7 +235,7 @@ change_point_df >> ply.arrange("-changepoint_prob") >> ply.slice_rows(30)
     + p9.coord_flip()
     + p9.theme_seaborn("white")
     + p9.labs(
-        x="years",
+        x="Year Shift",
         y="Probability of Changepoint",
         title="Changepoint Prediction for Token ('pandemic')",
     )
@@ -234,7 +249,7 @@ change_point_df >> ply.arrange("-changepoint_prob") >> ply.slice_rows(30)
     + p9.coord_flip()
     + p9.theme_seaborn("white")
     + p9.labs(
-        x="years",
+        x="Year Shift",
         y="Probability of Changepoint",
         title="Changepoint Prediction for Token ('the')",
     )

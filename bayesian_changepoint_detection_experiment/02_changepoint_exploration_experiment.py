@@ -76,6 +76,7 @@ word_model_cutoff_map = {
 
 # # Examine Handpicked Tokens with a high chance of Change
 
+# Only used in this notebook
 def examine_words_at_timepoint_range(
     word_model_map: dict, years_to_examine: list, tok: str = "the", topn: int = 25
 ):
@@ -92,6 +93,8 @@ def examine_words_at_timepoint_range(
     return word_map
 
 
+figure_output_path = Path("output/figures")
+
 # ## Pandemic
 
 # COVID-19. The drastic shift that came from the pandemic that was first talked about in 2019 but became more prevalent in 2020.
@@ -104,7 +107,7 @@ def examine_words_at_timepoint_range(
     + p9.coord_flip()
     + p9.theme_seaborn("white")
     + p9.labs(
-        x="years",
+        x="Year Shift",
         y="Probability of Changepoint",
         title="Changepoint Prediction for Token ('pandemic')",
     )
@@ -115,6 +118,7 @@ token_map = examine_words_at_timepoint_range(
 )
 
 tokens = from_memberships(token_map.values())
+fig = plt.figure(figsize=(11, 8))
 upset = UpSet(
     tokens,
     with_lines=False,
@@ -122,8 +126,11 @@ upset = UpSet(
     sort_by="cardinality",
     intersection_plot_elements=0,
 )
-upset.style_subsets(present="lockdown", facecolor="blue")
-UpSet.plot(upset)
+upset.style_subsets(present="lockdown", facecolor="#7570b3", label="2020")
+axes = UpSet.plot(upset, fig=fig)
+axes["shading"].set_xlabel("Order 2017, 2018, 2019, 2020")
+fig.savefig(f"{str(figure_output_path)}/pandemic_changepoint.svg")
+fig.savefig(f"{str(figure_output_path)}/pandemic_changepoint.png", dpi=500)
 
 # ## Rituximab
 
@@ -137,7 +144,7 @@ UpSet.plot(upset)
     + p9.coord_flip()
     + p9.theme_seaborn("white")
     + p9.labs(
-        x="years",
+        x="Year Shift",
         y="Probability of Changepoint",
         title="Changepoint Prediction for Token ('rituximab')",
     )
@@ -151,16 +158,19 @@ token_map = examine_words_at_timepoint_range(
 )
 
 tokens = from_memberships(token_map.values())
+fig = plt.figure(figsize=(11, 8))
 upset = UpSet(
     tokens,
     with_lines=False,
-    show_counts=False,
     sort_by="cardinality",
     intersection_plot_elements=0,
 )
-upset.style_subsets(present="methotrexate", facecolor="#1b9e77")
-upset.style_subsets(present="chemotherapeutic", facecolor="#7570b3")
-UpSet.plot(upset)
+upset.style_subsets(present="methotrexate", facecolor="#1b9e77", label="2005")
+upset.style_subsets(present="chemotherapeutic", facecolor="#7570b3", label="2006")
+axes = UpSet.plot(upset, fig=fig)
+axes["shading"].set_xlabel("Order 2003, 2004, 2005, 2006, 2007")
+fig.savefig(f"{str(figure_output_path)}/rituximab_changepoint.svg")
+fig.savefig(f"{str(figure_output_path)}/rituximab_changepoint.png", dpi=500)
 
 # ## Asthma
 
@@ -174,7 +184,7 @@ UpSet.plot(upset)
     + p9.coord_flip()
     + p9.theme_seaborn("white")
     + p9.labs(
-        x="years",
+        x="Year Shift",
         y="Probability of Changepoint",
         title="Changepoint Prediction for Token ('asthmatics')",
     )
@@ -182,33 +192,14 @@ UpSet.plot(upset)
 
 token_map = examine_words_at_timepoint_range(
     word_model_cutoff_map,
-    [2000, 2001, 2002, 2003, 2004],
+    [2003, 2004, 2005, 2006, 2007],
     tok="asthmatics",
     topn=5,
 )
 token_map
 
 tokens = from_memberships(token_map.values())
-upset = UpSet(
-    tokens,
-    with_lines=False,
-    show_counts=False,
-    sort_by="cardinality",
-    intersection_plot_elements=0,
-)
-upset.style_subsets(present="myocardial_infarction", facecolor="#1b9e77")
-upset.style_subsets(present="chemotaxis", facecolor="#7570b3")
-UpSet.plot(upset)
-
-token_map = examine_words_at_timepoint_range(
-    word_model_cutoff_map,
-    [2004, 2005, 2006, 2007],
-    tok="asthmatics",
-    topn=5,
-)
-token_map
-
-tokens = from_memberships(token_map.values())
+fig = plt.figure(figsize=(11, 8))
 upset = UpSet(
     tokens,
     with_lines=False,
@@ -218,7 +209,52 @@ upset = UpSet(
 )
 upset.style_subsets(present="newborn", facecolor="#1b9e77")
 upset.style_subsets(present="balf", facecolor="#7570b3")
-UpSet.plot(upset)
+axes = UpSet.plot(upset, fig=fig)
+axes["shading"].set_xlabel("Order 2003, 2004, 2005, 2006, 2007")
+fig.savefig(f"{str(figure_output_path)}/asthmatics_changepoint.svg")
+fig.savefig(f"{str(figure_output_path)}/asthmatics_changepoint.png", dpi=500)
+
+# ## Atoms
+
+# This shift seems to involve moving from analyzing DNA structure to more of an individual molecule focus.
+
+(
+    p9.ggplot(change_point_df >> ply.query("tok=='atoms'"))
+    + p9.aes(x="year_pair", y="changepoint_prob", group=0)
+    + p9.geom_point()
+    + p9.geom_line()
+    + p9.coord_flip()
+    + p9.theme_seaborn("white")
+    + p9.labs(
+        x="Year Shift",
+        y="Probability of Changepoint",
+        title="Changepoint Prediction for Token ('atoms')",
+    )
+)
+
+token_map = examine_words_at_timepoint_range(
+    word_model_cutoff_map,
+    [2004, 2005, 2006, 2007, 2008, 2009],
+    tok="atoms",
+    topn=5,
+)
+token_map
+
+tokens = from_memberships(token_map.values())
+fig = plt.figure(figsize=(11, 8))
+upset = UpSet(
+    tokens,
+    with_lines=False,
+    show_counts=False,
+    sort_by="cardinality",
+    intersection_plot_elements=0,
+)
+upset.style_subsets(present="backbone", facecolor="#1b9e77")
+upset.style_subsets(present="cations", facecolor="#7570b3")
+axes = UpSet.plot(upset, fig=fig)
+axes["shading"].set_xlabel("Order 2004, 2005, 2006, 2007, 2008, 2009")
+fig.savefig(f"{str(figure_output_path)}/atoms_changepoint.svg")
+fig.savefig(f"{str(figure_output_path)}/atoms_changepoint.png", dpi=500)
 
 # ## Individual Year Changes
 
@@ -248,6 +284,7 @@ token_map = examine_words_at_timepoint_range(
 )
 
 tokens = from_memberships(token_map.values())
+fig = plt.figure(figsize=(11, 8))
 upset = UpSet(
     tokens,
     with_lines=False,
@@ -255,9 +292,12 @@ upset = UpSet(
     sort_by="cardinality",
     intersection_plot_elements=0,
 )
-upset.style_subsets(present="city", facecolor="#1b9e77")
-upset.style_subsets(present="campaign", facecolor="#7570b3")
-UpSet.plot(upset)
+upset.style_subsets(present="campaign", facecolor="#1b9e77")
+upset.style_subsets(present="july", facecolor="#7570b3")
+axes = UpSet.plot(upset, fig=fig)
+axes["shading"].set_xlabel("Order 2000, 2001, 2002, 2003, 2004")
+fig.savefig(f"{str(figure_output_path)}/2001_changepoint.svg")
+fig.savefig(f"{str(figure_output_path)}/2001_changepoint.png", dpi=500)
 
 token_map = examine_words_at_timepoint_range(
     word_model_cutoff_map,
@@ -268,6 +308,7 @@ token_map = examine_words_at_timepoint_range(
 token_map
 
 tokens = from_memberships(token_map.values())
+fig = plt.figure(figsize=(11, 8))
 upset = UpSet(
     tokens,
     with_lines=False,
@@ -277,7 +318,10 @@ upset = UpSet(
 )
 upset.style_subsets(present="british_journal_of_cancer", facecolor="#1b9e77")
 upset.style_subsets(present="april", facecolor="#7570b3")
-UpSet.plot(upset)
+axes = UpSet.plot(upset, fig=fig)
+axes["shading"].set_xlabel("Order 2001, 2002, 2003, 2004, 2005")
+fig.savefig(f"{str(figure_output_path)}/2002_changepoint.svg")
+fig.savefig(f"{str(figure_output_path)}/2002_changepoint.png", dpi=500)
 
 # # Take home points
 
