@@ -164,7 +164,7 @@ if not Path("output/bayesian_changepoint_data.tsv", sep="\t").exists():
     for tok, tok_series_df in tqdm.tqdm(change_metric_df.groupby("tok")):
 
         change_metric_ratio = np.insert(
-            tok_series_df >> ply.pull("change_metric_ratio"), 0, 0
+            tok_series_df >> ply.pull("change_metric_ratio"), 0, 1
         )
         Q, P, Pcp = offcd.offline_changepoint_detection(
             change_metric_ratio,

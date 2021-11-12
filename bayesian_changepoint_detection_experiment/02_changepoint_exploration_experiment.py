@@ -214,6 +214,48 @@ axes["shading"].set_xlabel("Order 2003, 2004, 2005, 2006, 2007")
 fig.savefig(f"{str(figure_output_path)}/asthmatics_changepoint.svg")
 fig.savefig(f"{str(figure_output_path)}/asthmatics_changepoint.png", dpi=500)
 
+# ## Atoms
+
+# This shift seems to involve moving from analyzing DNA structure to more of an individual molecule focus.
+
+(
+    p9.ggplot(change_point_df >> ply.query("tok=='atoms'"))
+    + p9.aes(x="year_pair", y="changepoint_prob", group=0)
+    + p9.geom_point()
+    + p9.geom_line()
+    + p9.coord_flip()
+    + p9.theme_seaborn("white")
+    + p9.labs(
+        x="Year Shift",
+        y="Probability of Changepoint",
+        title="Changepoint Prediction for Token ('atoms')",
+    )
+)
+
+token_map = examine_words_at_timepoint_range(
+    word_model_cutoff_map,
+    [2004, 2005, 2006, 2007, 2008, 2009],
+    tok="atoms",
+    topn=5,
+)
+token_map
+
+tokens = from_memberships(token_map.values())
+fig = plt.figure(figsize=(11, 8))
+upset = UpSet(
+    tokens,
+    with_lines=False,
+    show_counts=False,
+    sort_by="cardinality",
+    intersection_plot_elements=0,
+)
+upset.style_subsets(present="backbone", facecolor="#1b9e77")
+upset.style_subsets(present="cations", facecolor="#7570b3")
+axes = UpSet.plot(upset, fig=fig)
+axes["shading"].set_xlabel("Order 2004, 2005, 2006, 2007, 2008, 2009")
+fig.savefig(f"{str(figure_output_path)}/atoms_changepoint.svg")
+fig.savefig(f"{str(figure_output_path)}/atoms_changepoint.png", dpi=500)
+
 # ## Individual Year Changes
 
 # 2001 token has a high chance of a shift moving from medical topics from cancer and healthcare to specifying time and dates.
