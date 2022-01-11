@@ -15,9 +15,13 @@
 
 # # Change Point Detection
 
-# This notebook is designed to perform bayesian change point detection on each individual token.
-# This method provides probability estimates that a changepoint occurred at a given time point.
-# There may be a problem with detecting changes at the extreme ends of the time series but inconclusive at the moment.
+# This notebook is designed to perform bayesian change point detection and run the CUSUM algorithm on each individual token.
+# The intended idea is to ask if a token has undergone a semantic changepoint along a set time period.
+# A changepoint here is defined as a token attaining a new association or "meaning" as scientists make new discoveries.
+# An iconic example of this would be the word pandemic.
+# Pandemic was associated with H1N1 because a lot of papers were talking about H1N1 during the late 2010s.
+# RECENTLY people and scientists have begun to talk more about covid-19.
+# This shift of focus is considered a "changepoint".
 
 # +
 from functools import partial

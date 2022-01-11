@@ -15,7 +15,8 @@
 
 # # Dive into time periods of change
 
-# This notebook is designed to further examine individual changepoints that occurred in [01_change_point_detection.ipynb](01_change_point_detection.ipynb) and [02_changepoint_detection_comparison](02_changepoint_detection_comparison).
+# Now that I determined that CUSUM is more appropriate for this application, the next step is to answer the question: what is the specific semantic change each token goes through?
+# Refer to [01_change_point_detection.ipynb](01_change_point_detection.ipynb) and [02_changepoint_detection_comparison](02_changepoint_detection_comparison) for more context.
 
 # +
 from IPython import display
@@ -225,7 +226,7 @@ token_map = examine_words_at_timepoint_range(
     word_model_cutoff_map,
     [2003, 2004, 2005, 2006, 2007],
     tok="asthmatics",
-    topn=5,
+    topn=10,
 )
 token_map
 
@@ -255,7 +256,7 @@ token_map = examine_words_at_timepoint_range(
     word_model_cutoff_map,
     [2004, 2005, 2006, 2007, 2008, 2009],
     tok="atoms",
-    topn=5,
+    topn=10,
 )
 token_map
 
@@ -269,7 +270,7 @@ upset = UpSet(
     intersection_plot_elements=0,
 )
 upset.style_subsets(present="backbone", facecolor="#1b9e77")
-upset.style_subsets(present="cations", facecolor="#7570b3")
+upset.style_subsets(present="folding", facecolor="#7570b3")
 axes = UpSet.plot(upset, fig=fig)
 axes["shading"].set_xlabel("Order 2004, 2005, 2006, 2007, 2008, 2009")
 fig.savefig(f"{str(figure_output_path)}/atoms_changepoint.svg")
@@ -287,7 +288,7 @@ token_map = examine_words_at_timepoint_range(
     word_model_cutoff_map,
     [2000, 2001, 2002, 2003, 2004],
     tok="2001",
-    topn=5,
+    topn=10,
 )
 
 tokens = from_memberships(token_map.values())
@@ -312,7 +313,7 @@ token_map = examine_words_at_timepoint_range(
     word_model_cutoff_map,
     [2001, 2002, 2003, 2004, 2005],
     tok="2002",
-    topn=5,
+    topn=10,
 )
 token_map
 
@@ -338,7 +339,7 @@ token_map = examine_words_at_timepoint_range(
     word_model_cutoff_map,
     [2002, 2003, 2004, 2005, 2006, 2007],
     tok="2005",
-    topn=5,
+    topn=10,
 )
 token_map
 
@@ -364,7 +365,7 @@ token_map = examine_words_at_timepoint_range(
     word_model_cutoff_map,
     [2006, 2007, 2008, 2009, 2010, 2011],
     tok="2010",
-    topn=5,
+    topn=10,
 )
 token_map
 
@@ -387,6 +388,5 @@ fig.savefig(f"{str(figure_output_path)}/2005_changepoint.png", dpi=500)
 # # Take home points
 
 # 1. Looks like my model is off by 1 for words such as corona virus and pandemic. This is probably due the way changepoint detection works and changes at the end of the series is hard to detect.
-# 2. Asthma has an association with type 2 diabetes. Thats really interesting as I just hadn't fathomed there was a connection.
-# 3. Years seem to undergo a shift in prevalent topics discussed to time indiciations. Need more data to be processed before I can truly say this trend is possible.
-# 4. Unfortunately, majority of my findings only arise from an increase in frequency. This might change if I were to use full text rather than abstracts.
+# 2. Years seem to undergo a shift in prevalent topics discussed to time indiciations. Need more data to be processed before I can truly say this trend is possible.
+# 3. Unfortunately, majority of my findings only arise from an increase in frequency. This might change if I were to use full text rather than abstracts.
