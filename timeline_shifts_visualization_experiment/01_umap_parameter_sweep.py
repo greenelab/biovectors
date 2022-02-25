@@ -16,10 +16,8 @@
 # # Parameter Sweep for UMAP
 
 # The last piece of this puzzle is to generate a visualization to show how a word is shifting through time.
-# In order to capture this sort of information the choice of model is ParametricUMAP which is a hybrid of the regular UMAP algorithm and neural networks.
-# The rationale for this mix is that a neural network is trained to model the neighborhood graph that UMAP needs to generate.
-# The best part about using a network is that one doesn't have to deal with memory issues that will arise within this data (300 dim * 100k+ words * 10 years)
-# Before we use ParametricUMAP, it's important to work with the original umap to see how words cluster together.
+# The initial analysis here is to see how the original umap clusters words together and figure out the optimal parameters.
+# The next notebook will explore parametric umap, which is a hybrid of umap and neural networks to project data into a low dimensional space.
 
 # +
 import itertools

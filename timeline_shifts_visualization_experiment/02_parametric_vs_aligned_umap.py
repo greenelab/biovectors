@@ -15,6 +15,12 @@
 
 # # Parametric UMAP vs Align UMAP
 
+# Following the parameter sweep for UMAP the next step here is to determine how Parametric UMAP works for this type of data.
+# ParametricUMAP is a hybrid of the regular UMAP algorithm and neural networks.
+# The rationale for this mix is that a neural network is trained to model the neighborhood graph that UMAP needs to generate.
+# The best part about using a network is that one doesn't have to deal with memory issues that will arise within this data (300 dim * 100k+ words * 10 years)
+# Using the parameters found in the previous notebook, I explore the differences between using parametric umap first and then see how it compares to AlignUMAP (a model specifically designed for aligning multiple umap models onto one unique space).
+
 # +
 from collections import OrderedDict
 import itertools
@@ -375,3 +381,9 @@ g = (
     + p9.theme(figure_size=(10, 8))
 )
 print(g)
+
+# # Take home messages
+
+# 1. Parametric UMAP works as expected. It creates clusters based on training data and uses this training data to map new data onto those clusters. Observed this when training on odd years but projecting even years onto that.
+# 2. Align umap might be better in terms of projections as it constructs individual umap models then aligns them overall.
+# 3. Not sure which model to choose but I believe that parametric umap might be the better but will see as this project unfolds.

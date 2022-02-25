@@ -15,7 +15,8 @@
 
 # # Test if PCA can separate the unique word2vec models
 
-# This notebook is designed to see if PCA can test apart unaligned word2vec models.
+# This notebook is designed to see if PCA can tease out unaligned word2vec models.
+# If it can then I wont have to explain UMAP but use PCA originally to do things.
 
 # +
 import itertools
@@ -136,3 +137,7 @@ g = (
     + p9.theme(figure_size=(10, 8))
 )
 print(g)
+
+# # Take home messages
+
+# 1. Unfortunately PCA cannot tease apart years like UMAP can. Therefore, I'll have use UMAP moving forward.
