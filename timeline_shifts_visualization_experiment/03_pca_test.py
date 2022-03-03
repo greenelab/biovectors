@@ -59,9 +59,9 @@ for word_file in tqdm.tqdm(odd_year_subset):
         cutoff_index=min(
             map(
                 lambda x: 999999
-                if model.get_vecattr(x[1], "count") > word_freq_count_cutoff
+                if model.wv.vocab[x[1]].count > word_freq_count_cutoff
                 else x[0],
-                enumerate(model.index_to_key),
+                enumerate(model.wv.index2entity),
             )
         ),
     )
@@ -73,20 +73,20 @@ year_labels_list = []
 for year in tqdm.tqdm(training_unaligned_word_model_map):
     model = training_unaligned_word_model_map[year]["model"]
     word_subset_matrix = model[
-        model.index_to_key[: training_unaligned_word_model_map[year]["cutoff_index"]]
+        model.wv.index2entity[: training_unaligned_word_model_map[year]["cutoff_index"]]
     ]
     print((year, word_subset_matrix.shape))
     words_to_visualize.append(word_subset_matrix)
     token_character_list += list(
         map(
             lambda x: re.escape(x),
-            model.index_to_key[
+            model.wv.index2entity[
                 : training_unaligned_word_model_map[year]["cutoff_index"]
             ],
         )
     )
     year_labels_list += [year] * len(
-        model.index_to_key[: training_unaligned_word_model_map[year]["cutoff_index"]]
+        model.wv.index2entity[: training_unaligned_word_model_map[year]["cutoff_index"]]
     )
 
 training_unaligned_words = np.vstack(words_to_visualize)
@@ -118,7 +118,7 @@ model = umap.parametric_umap.ParametricUMAP(
     random_state=100,
     low_memory=True,
     n_neighbors=25,
-    min_dist=0.0,
+    min_dist=0.99,
 )
 embedding = model.fit_transform(training_unaligned_words)
 

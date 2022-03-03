@@ -65,9 +65,9 @@ for word_file in tqdm.tqdm(odd_year_subset):
         cutoff_index=min(
             map(
                 lambda x: 999999
-                if model.get_vecattr(x[1], "count") > word_freq_count_cutoff
+                if model.wv.vocab[x[1]].count > word_freq_count_cutoff
                 else x[0],
-                enumerate(model.index_to_key),
+                enumerate(model.wv.index2entity),
             )
         ),
     )
@@ -79,20 +79,20 @@ year_labels_list = []
 for year in tqdm.tqdm(training_unaligned_word_model_map):
     model = training_unaligned_word_model_map[year]["model"]
     word_subset_matrix = model[
-        model.index_to_key[: training_unaligned_word_model_map[year]["cutoff_index"]]
+        model.wv.index2entity[: training_unaligned_word_model_map[year]["cutoff_index"]]
     ]
     print((year, word_subset_matrix.shape))
     words_to_visualize.append(word_subset_matrix)
     token_character_list += list(
         map(
             lambda x: re.escape(x),
-            model.index_to_key[
+            model.wv.index2entity[
                 : training_unaligned_word_model_map[year]["cutoff_index"]
             ],
         )
     )
     year_labels_list += [year] * len(
-        model.index_to_key[: training_unaligned_word_model_map[year]["cutoff_index"]]
+        model.wv.index2entity[: training_unaligned_word_model_map[year]["cutoff_index"]]
     )
 
 training_unaligned_words = np.vstack(words_to_visualize)
@@ -129,7 +129,7 @@ g = (
         p9.aes(x="umap1", y="umap2", fill="year"),
     )
     + p9.geom_point(alpha=0.2)
-    + p9.labs(title="Parameter Sweep of UMAP 2011-2020 (odd years)")
+    + p9.labs(title="Parameter Sweep of UMAP 2015-2020 (odd years)")
     + p9.theme(figure_size=(10, 8))
 )
 print(g)
@@ -144,9 +144,9 @@ for word_file in tqdm.tqdm(unaligned_word_model_filter[10:15]):
         cutoff_index=min(
             map(
                 lambda x: 999999
-                if model.get_vecattr(x[1], "count") > word_freq_count_cutoff
+                if model.wv.vocab[x[1]].count > word_freq_count_cutoff
                 else x[0],
-                enumerate(model.index_to_key),
+                enumerate(model.wv.index2entity),
             )
         ),
     )
@@ -158,18 +158,18 @@ year_labels_list = []
 for year in tqdm.tqdm(validation_word_model_map):
     model = validation_word_model_map[year]["model"]
     word_subset_matrix = model[
-        model.index_to_key[: validation_word_model_map[year]["cutoff_index"]]
+        model.wv.index2entity[: validation_word_model_map[year]["cutoff_index"]]
     ]
     print((year, word_subset_matrix.shape))
     words_to_visualize.append(word_subset_matrix)
     token_character_list += list(
         map(
             lambda x: re.escape(x),
-            model.index_to_key[: validation_word_model_map[year]["cutoff_index"]],
+            model.wv.index2entity[: validation_word_model_map[year]["cutoff_index"]],
         )
     )
     year_labels_list += [year] * len(
-        model.index_to_key[: validation_word_model_map[year]["cutoff_index"]]
+        model.wv.index2entity[: validation_word_model_map[year]["cutoff_index"]]
     )
 
 umap_embeddings = unaligned_parametric_model.transform(np.vstack(words_to_visualize))
@@ -188,7 +188,7 @@ g = (
         p9.aes(x="umap1", y="umap2", fill="year"),
     )
     + p9.geom_point(alpha=0.1)
-    + p9.labs(title="Parameter Sweep of UMAP 2011-2020 (odd years)")
+    + p9.labs(title="Parameter Sweep of UMAP 2010-2014")
     + p9.theme(figure_size=(10, 8))
     + p9.facet_wrap("year")
 )
@@ -213,9 +213,9 @@ for word_file in tqdm.tqdm(odd_year_subset):
         cutoff_index=min(
             map(
                 lambda x: 999999
-                if model.get_vecattr(x[1], "count") > word_freq_count_cutoff
+                if model.wv.vocab[x[1]].count > word_freq_count_cutoff
                 else x[0],
-                enumerate(model.index_to_key),
+                enumerate(model.wv.index2entity),
             )
         ),
     )
@@ -226,11 +226,11 @@ year_labels_list = []
 
 for year in tqdm.tqdm(aligned_training_word_model_map):
     model = aligned_training_word_model_map[year]["model"]
-    word_subset_matrix = model[model.index_to_key]
+    word_subset_matrix = model[model.wv.index2entity]
     print((year, word_subset_matrix.shape))
     words_to_visualize.append(word_subset_matrix)
-    token_character_list += list(map(lambda x: re.escape(x), model.index_to_key))
-    year_labels_list += [year] * len(model.index_to_key)
+    token_character_list += list(map(lambda x: re.escape(x), model.wv.index2entity))
+    year_labels_list += [year] * len(model.wv.index2entity)
 
 aligned_training_words = np.vstack(words_to_visualize)
 aligned_training_words.shape
@@ -266,7 +266,7 @@ g = (
         p9.aes(x="umap1", y="umap2", fill="year"),
     )
     + p9.geom_point(alpha=0.1)
-    + p9.labs(title="Parametric UMAP 2011-2020")
+    + p9.labs(title="Parametric UMAP 2017 and 2019")
     + p9.theme(figure_size=(10, 8))
 )
 print(g)
@@ -277,7 +277,7 @@ g = (
         p9.aes(x="umap1", y="umap2", fill="year"),
     )
     + p9.geom_point(alpha=0.1)
-    + p9.labs(title="Parameter Sweep of UMAP 2011-2020 (odd years)")
+    + p9.labs(title="Parametric UMAP 2017 and 2019")
     + p9.theme(figure_size=(10, 8))
     + p9.facet_wrap("year")
 )
@@ -297,18 +297,22 @@ for word_file in tqdm.tqdm(unaligned_word_model_filter[10:]):
         cutoff_index=min(
             map(
                 lambda x: 999999
-                if model.get_vecattr(x[1], "count") > word_freq_count_cutoff
+                if model.wv.vocab[x[1]].count > word_freq_count_cutoff
                 else x[0],
-                enumerate(model.index_to_key),
+                enumerate(model.wv.index2entity),
             )
         ),
     )
 
     training_word_model_map[year]["index_to_token_map"] = dict(
         zip(
-            model.index_to_key[: training_word_model_map[year]["cutoff_index"]],
+            model.wv.index2entity[: training_word_model_map[year]["cutoff_index"]],
             range(
-                len(model.index_to_key[: training_word_model_map[year]["cutoff_index"]])
+                len(
+                    model.wv.index2entity[
+                        : training_word_model_map[year]["cutoff_index"]
+                    ]
+                )
             ),
         )
     )
@@ -332,18 +336,18 @@ year_labels_list = []
 for year in tqdm.tqdm(training_word_model_map):
     model = training_word_model_map[year]["model"]
     word_subset_matrix = model[
-        model.index_to_key[: training_word_model_map[year]["cutoff_index"]]
+        model.wv.index2entity[: training_word_model_map[year]["cutoff_index"]]
     ]
     print((year, word_subset_matrix.shape))
     words_to_visualize.append(word_subset_matrix)
     token_character_list += list(
         map(
             lambda x: re.escape(x),
-            model.index_to_key[: training_word_model_map[year]["cutoff_index"]],
+            model.wv.index2entity[: training_word_model_map[year]["cutoff_index"]],
         )
     )
     year_labels_list += [year] * len(
-        model.index_to_key[: training_word_model_map[year]["cutoff_index"]]
+        model.wv.index2entity[: training_word_model_map[year]["cutoff_index"]]
     )
 
 aligned_umap_output_path = Path("output/aligned_umap_model.pkl")
@@ -386,4 +390,4 @@ print(g)
 
 # 1. Parametric UMAP works as expected. It creates clusters based on training data and uses this training data to map new data onto those clusters. Observed this when training on odd years but projecting even years onto that.
 # 2. Align umap might be better in terms of projections as it constructs individual umap models then aligns them overall.
-# 3. Not sure which model to choose but I believe that parametric umap might be the better but will see as this project unfolds.
+# 3. Not sure which model to choose but I believe that alignUMAP might be the better but will see as this project unfolds.
