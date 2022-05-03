@@ -17,7 +17,7 @@
 
 # This notebook runs Pubtator's specific taggers on the converted preprint files.
 # These taggers are mainly written in java (except for GnormPlus that has a perl option).
-# I suggest only using the java version as it was the easiest to set up and get running.
+# I suggest only using the java version (openjdk 11.0.15) as it was the easiest to set up and get running.
 # Also, as a side note some of these taggers will require a bit of hitting your head against the wall as one of their external programs will need you to recompile to run.
 #
 # | Tagger | URL |
