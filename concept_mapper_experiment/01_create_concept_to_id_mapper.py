@@ -49,16 +49,15 @@ if not Path(disease_file).exists():
 
 mesh_map_file = Path("output/mesh_headings_id_mapper.tsv")
 if not mesh_map_file.exists():
-    with open(disease_file, "r") as disease_infile, open(
-        chemical_file, "r"
-    ) as chem_infile:
+    with (
+        open(disease_file, "r") as disease_infile,
+        open(chemical_file, "r") as chem_infile
+    ):
         data_rows = []
         for line in tqdm.tqdm(disease_infile):
             line = line.strip()
-            match_obj = re.search("MH = ", line)
-
-            if match_obj is not None:
-                concept = re.sub("MH = ", "", line).lower()
+            if "MH = " in line:
+                concept = line.replace("MH = ", "").lower()
 
             match_obj = re.search("UI = ", line)
             if match_obj is not None:
