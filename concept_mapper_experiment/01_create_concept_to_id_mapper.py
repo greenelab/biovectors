@@ -19,7 +19,6 @@
 import gzip
 import os
 from pathlib import Path
-import re
 
 import pandas as pd
 import plydata as ply
@@ -49,32 +48,26 @@ if not Path(disease_file).exists():
 
 mesh_map_file = Path("output/mesh_headings_id_mapper.tsv")
 if not mesh_map_file.exists():
-    with (
-        open(disease_file, "r") as disease_infile,
-        open(chemical_file, "r") as chem_infile
-    ):
-        data_rows = []
-        for line in tqdm.tqdm(disease_infile):
-            line = line.strip()
-            if "MH = " in line:
-                concept = line.replace("MH = ", "").lower()
+    with open(disease_file, "r") as disease_infile:
+        with open(chemical_file, "r") as chem_infile:
+            data_rows = []
+            for line in tqdm.tqdm(disease_infile):
+                line = line.strip()
+                if "MH = " in line:
+                    concept = line.replace("MH = ", "").lower()
 
-            match_obj = re.search("UI = ", line)
-            if match_obj is not None:
-                concept_id = re.sub("UI = ", "", line).lower()
-                data_rows.append({"mesh_id": concept_id, "mesh_heading": concept})
+                if "UI = " in line:
+                    concept_id = line.replace("UI = ", "").lower()
+                    data_rows.append({"mesh_id": concept_id, "mesh_heading": concept})
 
-        for line in tqdm.tqdm(chem_infile):
-            line = line.strip()
-            match_obj = re.search("MH = ", line)
+            for line in tqdm.tqdm(chem_infile):
+                line = line.strip()
+                if "MH = " in line:
+                    concept = line.replace("MH = ", "").lower()
 
-            if match_obj is not None:
-                concept = re.sub("MH = ", "", line).lower()
-
-            match_obj = re.search("UI = ", line)
-            if match_obj is not None:
-                concept_id = re.sub("UI = ", "", line).lower()
-                data_rows.append({"mesh_id": concept_id, "mesh_heading": concept})
+                if "UI = " in line:
+                    concept_id = line.replace("UI = ", "").lower()
+                    data_rows.append({"mesh_id": concept_id, "mesh_heading": concept})
 
     concept_df = pd.DataFrame.from_records(data_rows)
     concept_df >> ply.call("to_csv", str(mesh_map_file), sep="\t", index=False)
@@ -103,7 +96,7 @@ if not species_map_file.exists():
     ) as species_infile:
         data_rows = []
         for idx, line in enumerate(species_infile):
-            fields = re.sub("\t", "", line.strip()).split("|")
+            fields = line.strip().replace("\t", "").split("|")
 
             if fields[3] == "scientific name":
                 data_rows.append(
@@ -132,6 +125,7 @@ if not gene_map_file.exists():
     with gzip.open(str(gene_file), "rt") as infile:
         data_rows = []
         for idx, line in tqdm.tqdm(enumerate(infile)):
+            # Skip the first line which is the header
             if idx == 0:
                 continue
 
