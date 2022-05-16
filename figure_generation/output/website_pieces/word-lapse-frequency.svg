@@ -1,0 +1,51 @@
+<svg id="frequency" viewBox="-72 -260 493 323" xmlns="http://www.w3.org/2000/svg" style="font-family: sans-serif;">
+	<g class="curve-fills">
+		<path class="curve-fill" d="M0,0L19.047619047619047,-0.0038187810196399913L38.095238095238095,-0.028513564946645264L57.14285714285714,-0.07052015616268516L76.19047619047619,-0.2153792495076955L95.23809523809523,-0.3128854582091699L114.28571428571428,-0.6530115543584385L133.33333333333331,-0.9340738374039417L152.38095238095238,-1.11788449714928L171.42857142857142,-2.4183067270373515L190.47619047619045,-3.945819134893348L209.52380952380955,-2.918057869807572L228.57142857142856,-1.0020481395535337L247.61904761904762,-0.7726666929738248L266.66666666666663,-0.6868714127325797L285.7142857142857,-0.6616674580029558L304.76190476190476,-0.4977144595597454L323.8095238095238,-0.4490886479096629L342.85714285714283,-0.5216454872828228L361.9047619047619,-1.417786099891674L380.9523809523809,-32.84584472072618L400,-200L400,0L380.9523809523809,0L361.9047619047619,0L342.85714285714283,0L323.8095238095238,0L304.76190476190476,0L285.7142857142857,0L266.66666666666663,0L247.61904761904762,0L228.57142857142856,0L209.52380952380955,0L190.47619047619045,0L171.42857142857142,0L152.38095238095238,0L133.33333333333331,0L114.28571428571428,0L95.23809523809523,0L76.19047619047619,0L57.14285714285714,0L38.095238095238095,0L19.047619047619047,0L0,0Z" fill="#f3f4f6">
+		</path>
+	</g>
+	<g class="curve-strokes">
+		<path stroke-dasharray="567.150046587531 567.150046587531" stroke-dashoffset="0" class="curve-stroke" d="M0,0L19.047619047619047,-0.0038187810196399913L38.095238095238095,-0.028513564946645264L57.14285714285714,-0.07052015616268516L76.19047619047619,-0.2153792495076955L95.23809523809523,-0.3128854582091699L114.28571428571428,-0.6530115543584385L133.33333333333331,-0.9340738374039417L152.38095238095238,-1.11788449714928L171.42857142857142,-2.4183067270373515L190.47619047619045,-3.945819134893348L209.52380952380955,-2.918057869807572L228.57142857142856,-1.0020481395535337L247.61904761904762,-0.7726666929738248L266.66666666666663,-0.6868714127325797L285.7142857142857,-0.6616674580029558L304.76190476190476,-0.4977144595597454L323.8095238095238,-0.4490886479096629L342.85714285714283,-0.5216454872828228L361.9047619047619,-1.417786099891674L380.9523809523809,-32.84584472072618L400,-200" fill="none" stroke="#6b7280" stroke-width="2" stroke-linejoin="round" stroke-linecap="round">
+
+		</path>
+	</g>
+	<g class="changepoints">
+		<path style="opacity: 0.25;" class="changepoints-fill" d="M361.9047619047619,-200L380.9523809523809,-200L380.9523809523809,0L361.9047619047619,0Z" fill="#dd96ff" stroke="#7d3da9" stroke-dasharray="4 4" aria-label="2019 to 2020 represents a significant change in the word's association">
+
+		</path>
+		<text style="opacity: 1;" class="changepoints-text" transform="translate(371.42857142857144, -100) rotate(-90)" text-anchor="middle" alignment-baseline="middle" fill="#7d3da9">
+			Change point
+		</text>
+	</g>
+	<g class="x-axis" fill="none" font-size="10" font-family="sans-serif" text-anchor="middle">
+		<path class="domain" stroke="currentColor" d="M0.5,6V0.5H400.5V6">
+
+		</path>
+		<g class="tick" opacity="1" transform="translate(0.5,0)">
+			<line stroke="currentColor" y2="6"></line>
+			<text fill="currentColor" y="9" dy="0.71em">2000</text>
+		</g>
+		<g class="tick" opacity="1" transform="translate(38.595238095238095,0)">
+			<line stroke="currentColor" y2="6"></line>
+			<text fill="currentColor" y="9" dy="0.71em">2002</text>
+		</g>
+		<g class="tick" opacity="1" transform="translate(76.69047619047619,0)">
+			<line stroke="currentColor" y2="6">
+
+			</line>
+			<text fill="currentColor" y="9" dy="0.71em">2004</text>
+		</g>
+		<g class="tick" opacity="1" transform="translate(114.78571428571428,0)">
+			<line stroke="currentColor" y2="6"></line><text fill="currentColor" y="9" dy="0.71em">2006</text>
+		</g>
+		<g class="tick" opacity="1" transform="translate(152.88095238095238,0)">
+			<line stroke="currentColor" y2="6"></line>
+			<text fill="currentColor" y="9" dy="0.71em">2008</text>
+		</g>
+			<g class="tick" opacity="1" transform="translate(190.97619047619045,0)">
+				<line stroke="currentColor" y2="6"></line>
+				<text fill="currentColor" y="9" dy="0.71em">2010</text>
+			</g>
+			<g class="tick" opacity="1" transform="translate(229.07142857142856,0)"><line stroke="currentColor" y2="6"></line><text fill="currentColor" y="9" dy="0.71em">2012</text></g><g class="tick" opacity="1" transform="translate(267.16666666666663,0)"><line stroke="currentColor" y2="6"></line><text fill="currentColor" y="9" dy="0.71em">2014</text></g><g class="tick" opacity="1" transform="translate(305.26190476190476,0)"><line stroke="currentColor" y2="6"></line><text fill="currentColor" y="9" dy="0.71em">2016</text></g><g class="tick" opacity="1" transform="translate(343.35714285714283,0)"><line stroke="currentColor" y2="6"></line><text fill="currentColor" y="9" dy="0.71em">2018</text></g><g class="tick" opacity="1" transform="translate(381.4523809523809,0)"><line stroke="currentColor" y2="6"></line><text fill="currentColor" y="9" dy="0.71em">2020</text></g></g><g class="y-axis" fill="none" font-size="10" font-family="sans-serif" text-anchor="end"><path class="domain" stroke="currentColor" d="M-6,0.5H0.5V-199.5H-6"></path><g class="tick" opacity="1" transform="translate(0,0.5)"><line stroke="currentColor" x2="-6"></line><text fill="currentColor" x="-9" dy="0.32em">less</text></g><g class="tick" opacity="1" transform="translate(0,-199.5)"><line stroke="currentColor" x2="-6"></line>
+			<text fill="currentColor" x="-9" dy="0.32em">more</text></g></g>
+			<g class="dots"><circle r="3" class="dot" fill="#e91e63" stroke="black" stroke-width="1" cx="0" cy="0" aria-label="Year: 2000 Frequency: 2.81e+2"></circle><circle r="3" class="dot" fill="#ea2271" stroke="black" stroke-width="1" cx="19.047619047619047" cy="-0.0038187810196399913" ></circle><circle r="3" class="dot" fill="#e9287f" stroke="black" stroke-width="1" cx="38.095238095238095" cy="-0.028513564946645264" ></circle>
+			<circle r="3" class="dot" fill="#e7308d" stroke="black" stroke-width="1" cx="57.14285714285714" cy="-0.07052015616268516" ></circle><circle r="3" class="dot" fill="#e4399a" stroke="black" stroke-width="1" cx="76.19047619047619" cy="-0.2153792495076955" ></circle><circle r="3" class="dot" fill="#df42a7" stroke="black" stroke-width="1" cx="95.23809523809523" cy="-0.3128854582091699" ></circle><circle r="3" class="dot" fill="#da4bb4" stroke="black" stroke-width="1" cx="114.28571428571428" cy="-0.6530115543584385" ></circle><circle r="3" class="dot" fill="#d353bf" stroke="black" stroke-width="1" cx="133.33333333333331" cy="-0.9340738374039417" ></circle><circle r="3" class="dot" fill="#cc5cca" stroke="black" stroke-width="1" cx="152.38095238095238" cy="-1.11788449714928" ></circle><circle r="3" class="dot" fill="#c364d4" stroke="black" stroke-width="1" cx="171.42857142857142" cy="-2.4183067270373515" ></circle><circle r="3" class="dot" fill="#b96cdd" stroke="black" stroke-width="1" cx="190.47619047619045" cy="-3.945819134893348" ></circle><circle r="3" class="dot" fill="#af73e4" stroke="black" stroke-width="1" cx="209.52380952380955" cy="-2.918057869807572" ></circle><circle r="3" class="dot" fill="#a37aeb" stroke="black" stroke-width="1" cx="228.57142857142856" cy="-1.0020481395535337" ></circle><circle r="3" class="dot" fill="#9781f0" stroke="black" stroke-width="1" cx="247.61904761904762" cy="-0.7726666929738248" ></circle><circle r="3" class="dot" fill="#8a87f5" stroke="black" stroke-width="1" cx="266.66666666666663" cy="-0.6868714127325797" ></circle><circle r="3" class="dot" fill="#7d8df8" stroke="black" stroke-width="1" cx="285.7142857142857" cy="-0.6616674580029558" ></circle><circle r="3" class="dot" fill="#6f93fa" stroke="black" stroke-width="1" cx="304.76190476190476" cy="-0.4977144595597454" ></circle><circle r="3" class="dot" fill="#5f98fb" stroke="black" stroke-width="1" cx="323.8095238095238" cy="-0.4490886479096629" ></circle><circle r="3" class="dot" fill="#4f9dfa" stroke="black" stroke-width="1" cx="342.85714285714283" cy="-0.5216454872828228" ></circle><circle r="3" class="dot" fill="#3da1f9" stroke="black" stroke-width="1" cx="361.9047619047619" cy="-1.417786099891674" ></circle><circle r="3" class="dot" fill="#28a5f7" stroke="black" stroke-width="1" cx="380.9523809523809" cy="-32.84584472072618" ></circle><circle r="3" class="dot" fill="#03a9f4" stroke="black" stroke-width="1" cx="400" cy="-200" ></circle></g><text transform="translate(200, 40)" text-anchor="middle" alignment-baseline="middle" style="font-size: 12px;">Year</text><text transform="translate(-40, -100) rotate(-90)" text-anchor="middle" alignment-baseline="middle" style="font-size: 12px;">Frequency</text><text x="200" y="-230" text-anchor="middle" style="font-size: 12px; font-weight: 600;">How often "pandemic" has been used over time</text></svg>
