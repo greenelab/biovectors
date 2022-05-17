@@ -22,6 +22,7 @@ from IPython.display import Image, display, SVG
 
 from cairosvg import svg2png
 from lxml import etree
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from svgutils.compose import Unit
@@ -50,8 +51,8 @@ panel_one_size = (
     np.round(float(panel_one.root.attrib["height"][:-2]) * 1.33, 0),
 )
 
-scale_x = 1.6
-scale_y = 1.6
+scale_x = 1.4
+scale_y = 1.4
 
 print(f"original: {panel_one_size}")
 print(f"scaled:{(panel_one_size[0]*scale_x,panel_one_size[1]*scale_y)}")
@@ -67,8 +68,8 @@ panel_two_size = (
     np.round(float(panel_two.root.attrib["width"][:-2]) * 1.33, 0),
     np.round(float(panel_two.root.attrib["height"][:-2]) * 1.33, 0),
 )
-scale_x = 1.6
-scale_y = 1.6
+scale_x = 1.4
+scale_y = 1.4
 
 print(f"original: {panel_two_size}")
 print(f"scaled:{(panel_two_size[0]*scale_x, panel_two_size[1]*scale_y)}")
@@ -84,8 +85,8 @@ panel_three_size = (
     np.round(float(panel_three.root.attrib["width"][:-2]) * 1.33, 0),
     np.round(float(panel_three.root.attrib["height"][:-2]) * 1.33, 0),
 )
-scale_x = 1.6
-scale_y = 1.6
+scale_x = 1.4
+scale_y = 1.4
 
 print(f"original: {panel_three_size}")
 print(f"scaled:{(panel_three_size[0]*scale_x, panel_three_size[1]*scale_y)}")
@@ -206,66 +207,92 @@ for table in tables_to_show:
 website_visualization_path = Path("output/website_pieces")
 
 # +
-panel_one = sg.fromfile(website_visualization_path / "word-lapse-trajectory.svg")
+fig = plt.figure(figsize=(10, 10), dpi=60)
+gs = fig.add_gridspec(nrows=1, ncols=4)
+ax1 = fig.add_subplot(gs[0])
+ax2 = fig.add_subplot(gs[1])
+ax3 = fig.add_subplot(gs[2])
 
-# Convert pt units to pixel units
-# Vince's tutorial FTW
-panel_one_size = (
-    np.round(float(panel_one.root.attrib["width"][:-2]) * 1.33, 0),
-    np.round(float(panel_one.root.attrib["height"][:-2]) * 1.33, 0),
+ax1.imshow(
+    plt.imread(f"{website_visualization_path}/word-lapse-trajectory.png"),
+    interpolation="nearest",
+)
+ax2.imshow(
+    plt.imread(f"{website_visualization_path}/word-lapse-frequency.png"),
+    interpolation="nearest",
+)
+ax3.imshow(
+    plt.imread(f"{website_visualization_path}/word-lapse-neighbors.png"),
+    interpolation="nearest",
 )
 
-scale_x = 1.6
-scale_y = 1.6
+# +
+panel_one = sg.fromfile(website_visualization_path / "word-lapse-trajectory.svg")
+svg2png(
+    bytestring=panel_one.to_str(),
+    write_to=f"{website_visualization_path}/word-lapse-trajectory.png",
+    dpi=600,
+)
+dimensions = list(
+    map(lambda x: abs(int(x)), panel_one.root.attrib["viewBox"].split(" "))
+)
+
+panel_one_size = (dimensions[0] + dimensions[2], dimensions[1] + dimensions[3])
+
+scale_x = 1
+scale_y = 1
 
 print(f"original: {panel_one_size}")
 print(f"scaled:{(panel_one_size[0]*scale_x,panel_one_size[1]*scale_y)}")
 
 panel_one = panel_one.getroot()
 panel_one.scale(x=scale_x, y=scale_y)
-panel_one.moveto(50, 50)
+panel_one.moveto(dimensions[0], dimensions[1])
 
 # +
 panel_two = sg.fromfile(website_visualization_path / "word-lapse-frequency.svg")
 
-panel_two_size = (
-    np.round(float(panel_two.root.attrib["width"][:-2]) * 1.33, 0),
-    np.round(float(panel_two.root.attrib["height"][:-2]) * 1.33, 0),
+dimensions = list(
+    map(lambda x: abs(int(x)), panel_two.root.attrib["viewBox"].split(" "))
 )
-scale_x = 1.6
-scale_y = 1.6
+
+panel_two_size = (dimensions[0] + dimensions[2], dimensions[1] + dimensions[3])
+scale_x = 1
+scale_y = 1
 
 print(f"original: {panel_two_size}")
 print(f"scaled:{(panel_two_size[0]*scale_x, panel_two_size[1]*scale_y)}")
 
 panel_two = panel_two.getroot()
 panel_two.scale(x=scale_x, y=scale_y)
-panel_two.moveto(954, 50)
+panel_two.moveto(dimensions[0] + 723, dimensions[1])
 
 # +
 panel_three = sg.fromfile(website_visualization_path / "word-lapse-neighbors.svg")
 
-panel_three_size = (
-    np.round(float(panel_three.root.attrib["width"][:-2]) * 1.33, 0),
-    np.round(float(panel_three.root.attrib["height"][:-2]) * 1.33, 0),
+dimensions = list(
+    map(lambda x: abs(int(x)), panel_three.root.attrib["viewBox"].split(" "))
 )
-scale_x = 1.6
-scale_y = 1.6
+
+panel_three_size = (dimensions[0] + dimensions[2], dimensions[1] + dimensions[3])
+
+scale_x = 1
+scale_y = 1
 
 print(f"original: {panel_three_size}")
 print(f"scaled:{(panel_three_size[0]*scale_x, panel_three_size[1]*scale_y)}")
 
 panel_three = panel_three.getroot()
 panel_three.scale(x=scale_x, y=scale_y)
-panel_three.moveto(50, 631)
+panel_three.moveto(dimensions[0] + 565, dimensions[1])
 # -
 
 panel_one_label = sg.TextElement(30, 30, "A", size=30, weight="bold")
-panel_two_label = sg.TextElement(954, 30, "B", size=30, weight="bold")
-panel_three_label = sg.TextElement(30, 631, "C", size=30, weight="bold")
+panel_two_label = sg.TextElement(773, 30, "B", size=30, weight="bold")
+panel_three_label = sg.TextElement(1388, 30, "C", size=30, weight="bold")
 
 # +
-figure_three = sg.SVGFigure(Unit(1650), Unit(1200))
+figure_three = sg.SVGFigure(Unit(1900), Unit(587))
 
 figure_three.append(
     [
