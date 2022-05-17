@@ -210,15 +210,15 @@ def merge_calculated_distances(temp_filepaths, outfile_path):
 def train_word2vec(doc_iterator):
     sentence_iterator = doc_iterator[0]
     output_folder = doc_iterator[1]
-    seed_idx = doc_iterator[2]
-    model_category = doc_iterator[3]
+    seed = doc_iterator[2]
+    seed_idx = doc_iterator[3]
 
-    seed = 100 + seed_idx
+    seed = seed + seed_idx
     model = Word2Vec(size=300, seed=seed, window=16, workers=4, min_count=5)
     model.build_vocab(sentence_iterator)
     model.train(sentence_iterator, epochs=5, total_examples=model.corpus_count)
     model.save(
-        f"{str(output_folder)}/{output_folder.stem.split('_')[0]}_{seed_idx}_{model_category}.model"
+        f"{str(output_folder)}/{output_folder.stem.split('_')[0]}_{seed_idx}.model"
     )
 
 
