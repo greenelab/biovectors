@@ -23,6 +23,7 @@ from IPython.display import Image, display, SVG
 from cairosvg import svg2png
 from lxml import etree
 import matplotlib.pyplot as plt
+from matplotlib_venn import venn2
 import numpy as np
 import pandas as pd
 from svgutils.compose import Unit
@@ -114,7 +115,7 @@ figure_one.append(
         panel_three_label,
     ]
 )
-# display(SVG(figure_one.to_str()))
+display(SVG(figure_one.to_str()))
 # -
 
 # save generated SVG files
@@ -157,21 +158,46 @@ print(f"scaled:{(panel_one_size[0]*scale_x,panel_one_size[1]*scale_y)}")
 panel_one = panel_one.getroot()
 panel_one.scale(x=scale_x, y=scale_y)
 panel_one.moveto(50, 50)
+
+# +
+panel_two = sg.fromfile(
+    novel_distance_visualization_path / "pandemic_cas9_changepoint_example_plot.svg"
+)
+
+# Convert pt units to pixel units
+# Vince's tutorial FTW
+panel_two_size = (
+    np.round(float(panel_two.root.attrib["width"][:-2]) * 1.33, 0),
+    np.round(float(panel_two.root.attrib["height"][:-2]) * 1.33, 0),
+)
+
+scale_x = 1
+scale_y = 1
+
+print(f"original: {panel_two_size}")
+print(f"scaled:{(panel_two_size[0]*scale_x,panel_two_size[1]*scale_y)}")
+
+panel_two = panel_two.getroot()
+panel_two.scale(x=scale_x, y=scale_y)
+panel_two.moveto(660, 50)
 # -
 
 panel_one_label = sg.TextElement(30, 30, "A", size=30, weight="bold")
+panel_two_label = sg.TextElement(630, 30, "B", size=30, weight="bold")
 
 # +
-figure_two = sg.SVGFigure(Unit(900), Unit(480))
+figure_two = sg.SVGFigure(Unit(1280), Unit(480))
 
 figure_two.append(
     [
         etree.Element("rect", {"width": "100%", "height": "100%", "fill": "white"}),
         panel_one,
         panel_one_label,
+        panel_two,
+        panel_two_label,
     ]
 )
-# display(SVG(figure_two.to_str()))
+display(SVG(figure_two.to_str()))
 # -
 
 # save generated SVG files
@@ -202,115 +228,44 @@ for table in tables_to_show:
     display(token_table)
     print()
 
-# ## Figure 4 - Website Walkthrough
+# ## Figure 3 - Compare Changepoints between Published Papers and Preperints
 
-website_visualization_path = Path("output/website_pieces")
+preprint_changepoint_path = Path("../biorxiv_experiment/output/")
+published_changepoint_path = Path("../multi_model_revamp/output/")
 
-# +
-fig = plt.figure(figsize=(10, 10), dpi=60)
-gs = fig.add_gridspec(nrows=1, ncols=4)
-ax1 = fig.add_subplot(gs[0])
-ax2 = fig.add_subplot(gs[1])
-ax3 = fig.add_subplot(gs[2])
+preprint_changepoints = pd.read_csv(
+    preprint_changepoint_path / "biorxiv_changepoints.tsv", sep="\t"
+)
+preprint_changepoints
 
-ax1.imshow(
-    plt.imread(f"{website_visualization_path}/word-lapse-trajectory.png"),
-    interpolation="nearest",
+published_changepoints = pd.read_csv(
+    published_changepoint_path / "pubtator_updated_changepoints.tsv", sep="\t"
 )
-ax2.imshow(
-    plt.imread(f"{website_visualization_path}/word-lapse-frequency.png"),
-    interpolation="nearest",
-)
-ax3.imshow(
-    plt.imread(f"{website_visualization_path}/word-lapse-neighbors.png"),
-    interpolation="nearest",
-)
+published_changepoints
 
-# +
-panel_one = sg.fromfile(website_visualization_path / "word-lapse-trajectory.svg")
-svg2png(
-    bytestring=panel_one.to_str(),
-    write_to=f"{website_visualization_path}/word-lapse-trajectory.png",
-    dpi=600,
+changepoint_intersection = set(published_changepoints["tok"]).intersection(
+    set(preprint_changepoints["tok"])
 )
-dimensions = list(
-    map(lambda x: abs(int(x)), panel_one.root.attrib["viewBox"].split(" "))
+changpoint_intersection_df = pd.DataFrame.from_dict(
+    dict(tok=list(changepoint_intersection))
+).sort_values("tok")
+changpoint_intersection_df.to_csv(
+    "output/Figure_3_intersection.tsv", sep="\t", index=False
 )
 
-panel_one_size = (dimensions[0] + dimensions[2], dimensions[1] + dimensions[3])
-
-scale_x = 1
-scale_y = 1
-
-print(f"original: {panel_one_size}")
-print(f"scaled:{(panel_one_size[0]*scale_x,panel_one_size[1]*scale_y)}")
-
-panel_one = panel_one.getroot()
-panel_one.scale(x=scale_x, y=scale_y)
-panel_one.moveto(dimensions[0], dimensions[1])
-
-# +
-panel_two = sg.fromfile(website_visualization_path / "word-lapse-frequency.svg")
-
-dimensions = list(
-    map(lambda x: abs(int(x)), panel_two.root.attrib["viewBox"].split(" "))
+fig = plt.figure()
+venn2(
+    [set(published_changepoints["tok"]), set(preprint_changepoints["tok"])],
+    normalize_to=200,
+    set_labels=("published", "preprints"),
+    set_colors=("#d95f02", "#1b9e77"),
 )
-
-panel_two_size = (dimensions[0] + dimensions[2], dimensions[1] + dimensions[3])
-scale_x = 1
-scale_y = 1
-
-print(f"original: {panel_two_size}")
-print(f"scaled:{(panel_two_size[0]*scale_x, panel_two_size[1]*scale_y)}")
-
-panel_two = panel_two.getroot()
-panel_two.scale(x=scale_x, y=scale_y)
-panel_two.moveto(dimensions[0] + 723, dimensions[1])
-
-# +
-panel_three = sg.fromfile(website_visualization_path / "word-lapse-neighbors.svg")
-
-dimensions = list(
-    map(lambda x: abs(int(x)), panel_three.root.attrib["viewBox"].split(" "))
-)
-
-panel_three_size = (dimensions[0] + dimensions[2], dimensions[1] + dimensions[3])
-
-scale_x = 1
-scale_y = 1
-
-print(f"original: {panel_three_size}")
-print(f"scaled:{(panel_three_size[0]*scale_x, panel_three_size[1]*scale_y)}")
-
-panel_three = panel_three.getroot()
-panel_three.scale(x=scale_x, y=scale_y)
-panel_three.moveto(dimensions[0] + 565, dimensions[1])
-# -
-
-panel_one_label = sg.TextElement(30, 30, "A", size=30, weight="bold")
-panel_two_label = sg.TextElement(773, 30, "B", size=30, weight="bold")
-panel_three_label = sg.TextElement(1388, 30, "C", size=30, weight="bold")
-
-# +
-figure_three = sg.SVGFigure(Unit(1900), Unit(587))
-
-figure_three.append(
-    [
-        etree.Element("rect", {"width": "100%", "height": "100%", "fill": "white"}),
-        panel_one,
-        panel_two,
-        panel_three,
-        panel_one_label,
-        panel_two_label,
-        panel_three_label,
-    ]
-)
-# display(SVG(figure_three.to_str()))
-# -
+plt.title("Overlap of Changepoints Between Published Papers and Preprints")
+fig.show()
 
 # save generated SVG files
-figure_three.save("output/Figure_3.svg")
-svg2png(bytestring=figure_three.to_str(), write_to="output/Figure_3.png", dpi=600)
+fig.savefig("output/Figure_3.svg")
+svg2png(url="output/Figure_3.svg", write_to="output/Figure_3.png", dpi=600)
 
 os.system(
     "convert -compress LZW -alpha remove output/Figure_3.png output/Figure_3.tiff"
