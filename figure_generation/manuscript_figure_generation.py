@@ -122,9 +122,7 @@ display(SVG(figure_one.to_str()))
 figure_one.save("output/Figure_1.svg")
 svg2png(bytestring=figure_one.to_str(), write_to="output/Figure_1.png", dpi=600)
 
-os.system(
-    "convert -compress LZW -alpha remove output/Figure_1.png output/Figure_1.tiff"
-)
+!convert -compress LZW -alpha remove output/Figure_1.png output/Figure_1.tiff
 os.system("mogrify -alpha off output/Figure_1.tiff")
 
 # ## Figure 2
