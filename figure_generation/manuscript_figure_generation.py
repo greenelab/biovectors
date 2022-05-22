@@ -122,8 +122,8 @@ display(SVG(figure_one.to_str()))
 figure_one.save("output/Figure_1.svg")
 svg2png(bytestring=figure_one.to_str(), write_to="output/Figure_1.png", dpi=600)
 
-!convert -compress LZW -alpha remove output/Figure_1.png output/Figure_1.tiff
-os.system("mogrify -alpha off output/Figure_1.tiff")
+# !convert -compress LZW -alpha remove output/Figure_1.png output/Figure_1.tiff
+# !mogrify -alpha off output/Figure_1.tiff
 
 # ## Figure 2
 
@@ -202,10 +202,8 @@ display(SVG(figure_two.to_str()))
 figure_two.save("output/Figure_2.svg")
 svg2png(bytestring=figure_two.to_str(), write_to="output/Figure_2.png", dpi=600)
 
-os.system(
-    "convert -compress LZW -alpha remove output/Figure_2.png output/Figure_2.tiff"
-)
-os.system("mogrify -alpha off output/Figure_2.tiff")
+# !convert -compress LZW -alpha remove output/Figure_2.png output/Figure_2.tiff
+# !mogrify -alpha off output/Figure_2.tiff
 
 # ## Figure 3
 
@@ -265,7 +263,5 @@ fig.show()
 fig.savefig("output/Figure_3.svg")
 svg2png(url="output/Figure_3.svg", write_to="output/Figure_3.png", dpi=600)
 
-os.system(
-    "convert -compress LZW -alpha remove output/Figure_3.png output/Figure_3.tiff"
-)
-os.system("mogrify -alpha off output/Figure_3.tiff")
+# !convert -compress LZW -alpha remove output/Figure_3.png output/Figure_3.tiff
+# !mogrify -alpha off output/Figure_3.tiff
