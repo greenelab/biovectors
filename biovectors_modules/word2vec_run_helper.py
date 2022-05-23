@@ -2,6 +2,7 @@ import gzip
 from multiprocessing import Process, Manager
 from pathlib import Path
 import random
+import re
 import tarfile
 from threading import Thread
 
@@ -292,6 +293,74 @@ class PubMedSentencesIterator:
 
                 else:
                     yield sentence[2], sentence[1]
+
+
+class AbstractIterator:
+    def __init__(self, file_iterator, section_filter=None, seed=100, idx=0):
+        random.seed(seed)
+        self.file_iterator = file_iterator
+        self.idx = idx
+
+        if section_filter is None:
+            section_filter = ["TITLE", "ABSTRACT"]
+        self.section_filter = section_filter
+
+        self.nlp = spacy.load("en_core_web_sm", disable=["parser", "ner"])
+
+    def __iter__(self):
+        random.shuffle(self.file_iterator)
+        for doc in tqdm.tqdm(self.file_iterator, desc=f"Model {self.idx}"):
+            doc_obj = ET.parse(str(doc)).getroot()
+
+            for passage in doc_obj.xpath("passage"):
+                section = passage.xpath("infon[@key='section_type']/text()")
+
+                if section[0] not in self.section_filter:
+                    continue
+
+                passage_text = passage.xpath("text/text()")
+
+                if len(passage_text) < 1:
+                    continue
+
+                yield_text = ""
+                passage_text = passage_text[0]
+
+                passage_offset = passage.xpath("offset/text()")[0]
+                current_pos = 0
+
+                sorted_passages = sorted(
+                    passage.xpath("annotation"),
+                    key=lambda x: int(x.xpath("location")[0].attrib["offset"]),
+                )
+
+                for annotation in sorted_passages:
+                    annot_identifier = annotation.xpath(
+                        "infon[@key='identifier']/text()"
+                    )
+
+                    if len(annot_identifier) == 0 or annot_identifier[0] == "-":
+                        continue
+
+                    annot_type = annotation.xpath("infon[@key='type']/text()")
+                    location = annotation.xpath("location")
+
+                    # replace string with identifier
+                    entity_start = int(location[0].attrib["offset"]) - int(
+                        passage_offset
+                    )
+                    entity_end = entity_start + int(location[0].attrib["length"])
+                    replacement_str = f" {annot_type[0].upper()}_{annot_identifier[0].replace(':','_')} "
+                    yield_text += (
+                        passage_text[current_pos:entity_start].lower() + replacement_str
+                    )
+                    current_pos = entity_end
+
+                yield_text += passage_text[current_pos:]
+                analyzed_text = self.nlp(yield_text)
+                yield list(map(lambda x: str(x.lemma_), analyzed_text))
+
+            doc_obj.clear()
 
 
 def chunks(lst, n):

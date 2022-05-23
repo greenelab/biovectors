@@ -45,7 +45,7 @@ lower_case_concept_id = list(map(lambda x: x.lower(), concepts_df.concept_id.tol
 concept_mapper = dict(zip(lower_case_concept_id, concepts_df.concept.tolist()))
 concepts_df >> ply.slice_rows(10)
 
-changepoints_df = pd.read_csv("output/pubtator_updated_changepoints.tsv", sep="\t")
+changepoints_df = pd.read_csv("output/pubtator_changepoints.tsv", sep="\t")
 changepoints_df
 
 query = "reviewer(s"
@@ -61,6 +61,7 @@ neighbor_thru_time_df = generate_neighbor_table(
     changepoints_df,
     concept_mapper,
     n_neighbors=10,
+    output_file_folder=output_file_folder,
     save_file=True,
 )
 neighbor_thru_time_df.T
@@ -72,6 +73,7 @@ neighbor_thru_time_df = generate_neighbor_table(
     changepoints_df,
     concept_mapper,
     n_neighbors=10,
+    output_file_folder=output_file_folder,
     save_file=True,
 )
 neighbor_thru_time_df.T
@@ -83,6 +85,7 @@ neighbor_thru_time_df = generate_neighbor_table(
     changepoints_df,
     concept_mapper,
     n_neighbors=10,
+    output_file_folder=output_file_folder,
     save_file=True,
 )
 neighbor_thru_time_df.T
