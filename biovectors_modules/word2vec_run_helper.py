@@ -2,7 +2,6 @@ import gzip
 from multiprocessing import Process, Manager
 from pathlib import Path
 import random
-import re
 import tarfile
 from threading import Thread
 
