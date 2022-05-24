@@ -1,0 +1,23 @@
+	0	1	2	3	4	5	6	7	8	9
+2000	epidemic	epizootic	influenza b virus (species_11520)	h3n2 subtype (species_119210)	1918	zoonosis	h1n1 subtype (species_114727)	japanese encephalitis virus (species_11072)	outbreak	poliomyelitis (mesh_d011051)
+2001	epidemic	poliomyelitis (mesh_d011051)	variola virus (species_10255)	influenza a virus (species_11320)	plague	epizootic	h3n2 subtype (species_119210)	polio	1918	encephalitis, arbovirus (mesh_d004671)
+2002	epidemic	variola virus (species_10255)	1918	h5n1 subtype (species_102793)	epizootic	resurgence	influenza a virus (species_11320)	plague	flavivirus	h1n1 subtype (species_114727)
+2003	epidemic	influenza b virus (species_11520)	h5n1 subtype (species_102793)	1918	reemergence	outbreak	variola	bioterrorism	h3n2 subtype (species_119210)	influenza a virus (species_11320)
+2004	epidemic	1918	variola virus (species_10255)	influenza a virus (a/wsn/1933(h1n1)) (species_382835)	h5n1 subtype (species_102793)	reemergence	outbreak	unidentified influenza virus (species_11309)	influenza a virus (species_11320)	plague
+2005	epidemic	flu	variola virus (species_10255)	outbreak	unidentified influenza virus (species_11309)	bioterrorism	h5n1 subtype (species_102793)	1918	influenza a virus (species_11320)	influenza
+2006	epidemic	outbreak	influenza a virus (species_11320)	unidentified influenza virus (species_11309)	SARS1 (gene_6301)	disaster	influenza	1918	flu	variola virus (species_10255)
+2007	epidemic	outbreak	influenza	bioterrorism	influenza a virus (species_11320)	h5n1 subtype (species_102793)	severe acute respiratory syndrome (mesh_d045169)	unidentified influenza virus (species_11309)	disaster	flu
+2008	epidemic	outbreak	influenza	variola virus (species_10255)	disaster	severe acute respiratory syndrome (mesh_d045169)	influenza a virus (species_11320)	unidentified influenza virus (species_11309)	bioterrorism	1918
+2009	epidemic	outbreak	influenza	h1n1 subtype (species_114727)	influenza a virus (species_11320)	unidentified influenza virus (species_11309)	severe acute respiratory syndrome (mesh_d045169)	disaster	influenza, human (mesh_d007251)	variola virus (species_10255)
+2010	epidemic	h1n1 subtype (species_114727)	influenza	outbreak	influenza a virus (species_11320)	unidentified influenza virus (species_11309)	ph1n1	severe acute respiratory syndrome (mesh_d045169)	influenza, human (mesh_d007251)	flu
+2011	ph1n1	epidemic	h1n1 subtype (species_114727)	influenza	outbreak	influenza a virus h3n2 (species_41857)	influenza a virus (species_11320)	unidentified influenza virus (species_11309)	influenza a virus (h1n1) (species_1323429)	influenza, human (mesh_d007251)
+2012	epidemic	h1n1 subtype (species_114727)	influenza	outbreak	ph1n1	unidentified influenza virus (species_11309)	influenza a virus h3n2 (species_41857)	influenza a virus (species_11320)	influenza, human (mesh_d007251)	severe acute respiratory syndrome (mesh_d045169)
+2013	epidemic	h1n1 subtype (species_114727)	outbreak	influenza	ph1n1	unidentified influenza virus (species_11309)	influenza, human (mesh_d007251)	influenza a virus (h1n1) (species_1323429)	influenza a virus (species_11320)	severe acute respiratory syndrome (mesh_d045169)
+2014	epidemic	outbreak	h1n1 subtype (species_114727)	influenza a virus (h1n1) (species_1323429)	epizootic	ph1n1	influenza a virus (species_11320)	a(h7n9	severe acute respiratory syndrome (mesh_d045169)	influenza
+2015	epidemic	outbreak	h1n1 subtype (species_114727)	influenza a virus (species_11320)	severe acute respiratory syndrome (mesh_d045169)	influenza, human (mesh_d007251)	influenza	unidentified influenza virus (species_11309)	h7n9 subtype (species_333278)	influenza a virus h3n2 (species_41857)
+2016	epidemic	outbreak	h1n1 subtype (species_114727)	severe acute respiratory syndrome (mesh_d045169)	ph1n1	epizootic	h7n9	h7n9 subtype (species_333278)	hpai	influenza a virus h3n2 (species_41857)
+2017	epidemic	outbreak	influenza a virus (species_11320)	ah1n1	h7n9	epizootic	h1n1 subtype (species_114727)	h7n9 subtype (species_333278)	unidentified influenza virus (species_11309)	influenza, human (mesh_d007251)
+2018	epidemic	outbreak	influenza	h1n1 subtype (species_114727)	epizootic	influenza a virus (species_11320)	1918	h7n9 subtype (species_333278)	ph1n1	influenza, human (mesh_d007251)
+2019	epidemic	outbreak	h1n1 subtype (species_114727)	epizootic	hpai	orthomyxoviridae (species_11308)	h7n9 subtype (species_333278)	influenza a virus (species_11320)	coronavirus infections (mesh_d018352)	influenza b virus (species_11520)
+2020	crisis	epidemic	outbreak	lockdown	mesh_c000657245	surge	disaster	quarantine	government	emergency
+2021	crisis	lockdown	epidemic	outbreak	mesh_c000657245	surge	quarantine	disaster	government	shutdown

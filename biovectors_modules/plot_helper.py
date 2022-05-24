@@ -1,13 +1,129 @@
 from pathlib import Path
 from typing import Any, Mapping, Sequence, Tuple, Iterable
 
+from gensim.models import Word2Vec
 import imageio
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import plotnine as p9
-from plydata import query, define, if_else, pull
+import plydata as ply
+import tqdm
 from wordcloud import WordCloud
+
+
+def deidentify_concepts(concept: str, concept_mapper: dict):
+    if concept.startswith("disease_") or concept.startswith("chemical_"):
+        concept = concept[concept.find("_") + 1 :]
+
+    return (
+        f"{concept_mapper[concept]} ({concept})"
+        if concept in concept_mapper
+        else concept
+    )
+
+
+def generate_neighbor_table(
+    word2vec_model_list: list,
+    query_token: str,
+    changepoint_df: pd.DataFrame,
+    concept_mapper: dict,
+    n_neighbors: int = 10,
+    output_file_folder: Path = Path("output"),
+    save_file: bool = False,
+):
+    neighbor_df = pd.DataFrame()
+    for model in tqdm.tqdm(word2vec_model_list):
+        word_model = Word2Vec.load(str(model))
+        if query_token in word_model.wv.vocab:
+            neighbors = list(
+                map(
+                    lambda x: deidentify_concepts(x[0], concept_mapper),
+                    word_model.wv.most_similar(query_token, topn=n_neighbors),
+                )
+            )
+            year = model.stem.split("_")[0]
+            neighbor_df = neighbor_df >> ply.define((year, neighbors))
+
+    print(changepoint_df >> ply.query(f"tok=='{query_token}'"))
+    if save_file:
+        changepoint = (
+            changepoint_df
+            >> ply.query(f"tok=='{query_token}'")
+            >> ply.pull("changepoint_idx")
+        )
+        if len(changepoint) == 0:
+            changepoint = ["no_changepoint_detected"]
+        neighbor_df.T >> ply.call(
+            ".to_csv",
+            f"{str(output_file_folder)}/{query_token}_neighbors_{changepoint[0]}.tsv",
+            sep="\t",
+        )
+    return neighbor_df
+
+
+def overlay_token_with_model(
+    token_list: list,
+    single_token_dist_df: pd.DataFrame,
+    multi_distance_df: pd.DataFrame,
+) -> p9.ggplot:
+    all_changepoints_df = pd.DataFrame()
+
+    for query_tok in token_list:
+        known_changepoint_df = (
+            single_token_dist_df
+            >> ply.query(f"tok in '{query_tok}'")
+            >> ply.define(label=f'"{query_tok} token"')
+            >> ply.select("tok", "label", "distance", "timepoint")
+        )
+
+        middle_estimate = known_changepoint_df.iloc[  # noqa:F841
+            int(known_changepoint_df.shape[0] / 2)
+        ]["distance"]
+
+        known_changepoint_df = known_changepoint_df >> ply.define(
+            pct_diff="abs(distance/middle_estimate -1)"
+        )
+
+        all_changepoints_df = all_changepoints_df >> ply.call(
+            ".append", known_changepoint_df
+        )
+
+    multi_distance_df = (
+        multi_distance_df
+        >> ply.rename(pct_diff="pct_diff_2010")
+        >> ply.select("timepoint", "distance", "pct_diff")
+        >> ply.define(label='"correction_model"')
+        >> ply.call(".append", all_changepoints_df)
+        >> ply.select("-tok")
+    )
+
+    labels = [f"{tok} token" for tok in token_list]
+
+    g = (
+        multi_distance_df
+        >> ply.define(
+            label=pd.Categorical(
+                multi_distance_df >> ply.pull("label"),
+                categories=["correction_model"] + labels,
+            )
+        )
+        >> (
+            p9.ggplot()
+            + p9.aes(x="timepoint", y="pct_diff", color="label", group="label")
+            + p9.geom_point()
+            + p9.geom_line()
+            + p9.coord_flip()
+            + p9.theme_seaborn(style="white")
+            + p9.labs(
+                title="Percent Difference Relative to 2010-2011",
+                x="Time Periods",
+                y="Percent Difference",
+            )
+            + p9.scale_color_brewer(type="qual", palette="Dark2")
+        )
+    )
+    return g
 
 
 def plot_local_global_distances(
@@ -22,12 +138,14 @@ def plot_local_global_distances(
     Parameters
         timeline_df - a panda dataframe containing tokens with local_distance, global_distance and the corresponding z-scores
     """
-    timeline_df = timeline_df >> query("token==@token")
+    timeline_df = timeline_df >> ply.query("token==@token")
 
     text_color = (
         timeline_df
-        >> define(text_color=if_else("global_dist >= 0.7", "'black'", "'white'"))
-        >> pull("text_color")
+        >> ply.define(
+            text_color=ply.if_else("global_dist >= 0.7", "'black'", "'white'")
+        )
+        >> ply.pull("text_color")
     )
 
     global_distance_plot = (
@@ -51,8 +169,8 @@ def plot_local_global_distances(
 
     text_color = (
         timeline_df
-        >> define(text_color=if_else("local_dist >= 0.7", "'black'", "'white'"))
-        >> pull("text_color")
+        >> ply.define(text_color=ply.if_else("local_dist >= 0.7", "'black'", "'white'"))
+        >> ply.pull("text_color")
     )
 
     local_distance_plot = (
@@ -76,8 +194,10 @@ def plot_local_global_distances(
 
     text_color = (
         timeline_df
-        >> define(text_color=if_else("z_global_dist >= 2", "'black'", "'white'"))
-        >> pull("text_color")
+        >> ply.define(
+            text_color=ply.if_else("z_global_dist >= 2", "'black'", "'white'")
+        )
+        >> ply.pull("text_color")
     )
 
     z_global_distance_plot = (
@@ -102,8 +222,8 @@ def plot_local_global_distances(
 
     text_color = (
         timeline_df
-        >> define(text_color=if_else("z_local_dist >= 2", "'black'", "'white'"))
-        >> pull("text_color")
+        >> ply.define(text_color=ply.if_else("z_local_dist >= 2", "'black'", "'white'"))
+        >> ply.pull("text_color")
     )
 
     z_local_distance_plot = (

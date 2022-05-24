@@ -1,0 +1,12 @@
+	0	1	2	3	4	5	6	7	8	9
+2011	cas2	crispr3	cas3	cas1	cse3	cas4	csn1	crispr1	csn2	crispr
+2012	cas2	crispr1	cas3	cas1	cas10	crispr3	tracrrna	crispr	csn1	crispr4
+2013	sgrna	talen	spcas9	zfns	grna	zfn	dcas9	nickase	pcocas9	crispr
+2014	talen	sgrna	grna	zfn	dcas9	zfns	crispr	rgen	grnas	sgrnas
+2015	talen	sgrna	zfn	zfns	grna	crispr	spcas9	dcas9	cas9n	sgrnas
+2016	crispr	talen	sgrna	grna	zfn	cripsr	sacas9	spcas9	zfns	Cnbd2 (gene_70873)
+2017	spcas9	crispr	sacas9	talen	sgrna	grna	Cnbd2 (gene_70873)	gene_46806597	cas9n	cripsr
+2018	crispr	sgrna	grna	talen	gene_46806597	cripsr	spcas9	cas9n	Cnbd2 (gene_70873)	zfn
+2019	gene_46806597	crispr	cripsr	grna	Cnbd2 (gene_70873)	cas9n	sgrna	zfn	talen	sacas9
+2020	gene_46806597	crispr	gene_52200466	Cnbd2 (gene_70873)	grna	cripsr	zfn	sgrna	cas-9	talen
+2021	gene_46806597	Cnbd2 (gene_70873)	crispr	cripsr	cas-9	cas9n	gene_52200466	grna	spcas9	cas9-
