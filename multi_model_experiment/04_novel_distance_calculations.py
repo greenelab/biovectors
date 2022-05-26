@@ -23,7 +23,7 @@
 # Regarding this project, I'm using cosine distance to see how a word changes across time.
 # I based this comparison off of two metrics defined by authors in [this paper](http://arxiv.org/abs/1606.02821).
 # - Global distance is defined as the cosine distance between words in year with their second year counterparts
-# - Local distance is defined as the cosine distance of a word's similarity to its neighbors across time
+# - Local distance is defined as the cosine distance of a word's similarity to its neighbors across time (no longer used)
 
 # +
 # %load_ext autoreload
@@ -104,10 +104,9 @@ for model_file in tqdm.tqdm(word_model_filter):
 
 intra_year_models = []
 for idx, file in enumerate(Path("output/intra_models").rglob("*.tsv.xz")):
-    print(file)
-    intra_year_model_df = pd.read_csv(str(file), sep="\t") >> ply_tdy.extract(
-        "year_pair", into="year", regex=r"(\d+)_", convert=True
-    )
+    intra_year_model_df = pd.read_csv(
+        str(file), sep="\t", na_filter=False
+    ) >> ply_tdy.extract("year_pair", into="year", regex=r"(\d+)_", convert=True)
 
     intra_year_models.append(intra_year_model_df)
 
@@ -180,17 +179,18 @@ return_global_plot(intra_year_models, "rna", limits=(0, 0.5))
 
 # ## Inter Model Calculations
 
-for idx, file in enumerate(Path("inter_models").rglob("*.tsv")):
-    inter_year_model_df = pd.read_csv(str(file), sep="\t") >> ply_tdy.extract(
-        "year_pair", into=["year1", "year2"], regex=r"(\d+)_\d-(\d+)_\d", convert=True
-    )
+for idx, file in enumerate(Path("output/inter_models/on_years").rglob("*.tsv.xz")):
 
-    average_file_name = (
-        f"output/averaged_inter_models/average_{str(Path(file).stem)}.tsv"
-    )
+    average_file_name = f"output/averaged_inter_models/average_{str(Path(file).stem)}"
 
     if Path(average_file_name).exists():
         continue
+
+    inter_year_model_df = pd.read_csv(
+        str(file), sep="\t", na_filter=False
+    ) >> ply_tdy.extract(
+        "year_pair", into=["year1", "year2"], regex=r"(\d+)_\d-(\d+)_\d", convert=True
+    )
 
     averaged_inter_year_models = dict()
     for idx, row in tqdm.tqdm(
@@ -209,16 +209,11 @@ for idx, file in enumerate(Path("inter_models").rglob("*.tsv")):
         averaged_inter_year_models[(row["tok"], int(row["year1"]), int(row["year2"]))][
             "global_distance"
         ].append(row["global_distance"])
-        averaged_inter_year_models[(row["tok"], int(row["year1"]), int(row["year2"]))][
-            "local_distance"
-        ].append(row["local_distance"])
 
     with open(average_file_name, "w") as outfile:
         fieldnames = [
             "average_global_distance",
-            "average_local_distance",
             "var_global_distance",
-            "var_local_distance",
             "tok",
             "year1",
             "year2",
@@ -239,16 +234,6 @@ for idx, file in enumerate(Path("inter_models").rglob("*.tsv")):
                     "var_global_distance": np.var(
                         averaged_inter_year_models[(tok, year1, year2)][
                             "global_distance"
-                        ]
-                    ),
-                    "average_local_distance": np.mean(
-                        averaged_inter_year_models[(tok, year1, year2)][
-                            "local_distance"
-                        ]
-                    ),
-                    "var_local_distance": np.var(
-                        averaged_inter_year_models[(tok, year1, year2)][
-                            "local_distance"
                         ]
                     ),
                     "tok": tok,
@@ -293,7 +278,7 @@ for idx, file in enumerate(Path("inter_models").rglob("*.tsv")):
 
 intra_year_averaged = pd.concat(
     [
-        pd.read_csv(str(file), sep="\t")
+        pd.read_csv(str(file), sep="\t", na_filter=False)
         for file in Path("output/averaged_intra_models").rglob("*.tsv")
     ]
 )
@@ -308,23 +293,23 @@ for idx, row in tqdm.tqdm(intra_year_averaged.iterrows()):
 
 inter_model_files = list(Path("output/averaged_inter_models").rglob("*tsv"))
 unique_years = set(
-    list(map(lambda x: re.search(r"(\d+)", x.stem).groups()[0], inter_model_files))
+    list(map(lambda x: int(re.search(r"(\d+)", x.stem).groups()[0]), inter_model_files))
 )
 len(unique_years)
 
 for year in unique_years:
 
     if Path(
-        f"output/combined_inter_intra_distances/saved_{year}_distance.tsv"
+        f"output/combined_inter_intra_distances/saved_{year}-{year+1}_distance.tsv"
     ).exists():
-        print(f"{year} exists!")
+        print(f"{year}-{year+1} exists!")
         continue
 
     inter_year_models_averaged = pd.concat(
         [
-            pd.read_csv(str(file), sep="\t")
+            pd.read_csv(str(file), sep="\t", na_filter=False)
             for file in filter(
-                lambda x: re.search(r"(\d+)", x.stem).group(0) == year,
+                lambda x: int(re.search(r"(\d+)", x.stem).group(0)) == year,
                 Path("output/averaged_inter_models").rglob(f"*{year}*.tsv"),
             )
         ]
@@ -333,9 +318,10 @@ for year in unique_years:
     data = []
     already_seen = set()
     for idx, row in tqdm.tqdm(inter_year_models_averaged.iterrows()):
+
         # Inter year variation
         global_inter_top = row["average_global_distance"]
-        local_inter_top = row["average_local_distance"]
+        # local_inter_top = row["average_local_distance"]
 
         if (row["tok"], int(row["year1"])) not in tok_intra_year or (
             row["tok"],
@@ -353,34 +339,23 @@ for year in unique_years:
             global_inter_top + global_intra_bottom
         )
 
-        # local intra year variation
-        # intra year variaion
-        local_intra_bottom = (
-            tok_intra_year[(row["tok"], int(row["year1"]))]["local"]
-            + tok_intra_year[(row["tok"], int(row["year2"]))]["local"]
-        )
-
-        local_distance_qst = local_inter_top / (local_inter_top + local_intra_bottom)
-
         data.append(
             {
                 "tok": row["tok"],
                 "original_global_distance": global_inter_top,
                 "global_distance_qst": global_distance_qst,
-                "local_distance_qst": local_distance_qst,
                 "ratio_metric": global_inter_top / global_intra_bottom,
                 "year_1": row["year1"],
                 "year_2": row["year2"],
             }
         )
 
-    corrected_df = pd.DataFrame.from_records(data)
-    stable_tokens = corrected_df >> ply.group_by("tok") >> ply.count()
-
-    tokens_to_filter = stable_tokens.query(f"n=={stable_tokens.n.max()}").tok.tolist()
-    corrected_df = corrected_df >> ply.query(f"tok in {tokens_to_filter}")
-    corrected_df.to_csv(
-        f"output/combined_inter_intra_distances/saved_{year}_distance.tsv",
-        sep="\t",
-        index=False,
+    (
+        pd.DataFrame.from_records(data)
+        >> ply.call(
+            ".to_csv",
+            f"output/combined_inter_intra_distances/saved_{year}-{year+1}_distance.tsv",
+            sep="\t",
+            index=False,
+        )
     )

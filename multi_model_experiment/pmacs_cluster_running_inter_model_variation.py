@@ -10,14 +10,14 @@ from joblib import Parallel, delayed
 import pandas as pd
 import tqdm
 
-from .distance_calculation_helper import calculate_distances
+from distance_calculation_helper import calculate_distances
 
 if __name__ == "__main__":
     # This is a hack to get results before committee meeting
     # This block will be removed afterwards
-    tokens = pd.read_csv("output/subsetted_tokens.tsv", sep="\t")
-    global subset_tokens
-    subset_tokens = set(tokens.tok.tolist())
+    # tokens = pd.read_csv("output/subsetted_tokens.tsv", sep="\t")
+    # global subset_tokens
+    # subset_tokens = set(tokens.tok.tolist())
 
     temp_output_path = "output/aligned_vectors_tmp"
     aligned_vectors = list(Path(f"{str(temp_output_path)}").rglob("*kv"))
@@ -35,9 +35,21 @@ if __name__ == "__main__":
 
     for pair in years_to_parse:
 
+        if int(pair[1]) - int(pair[0]) != 1:
+            continue
+
         filename = f"output/inter_models/combined_{pair[0]}_{pair[1]}.tsv"
+
         if Path(filename).exists():
             continue
+
+        if Path(f"output/inter_models/combined_{pair[0]}_{pair[1]}.tsv.xz").exists():
+            subset_tokens_df = pd.read_csv(
+                f"output/inter_models/combined_{pair[0]}_{pair[1]}.tsv.xz", sep="\t"
+            )
+            subset_tokens = set(subset_tokens_df.tok.tolist())
+        else:
+            subset_tokens = {}
 
         year_mapper = list(
             itertools.product(aligned_vector_map[pair[0]], aligned_vector_map[pair[1]])
