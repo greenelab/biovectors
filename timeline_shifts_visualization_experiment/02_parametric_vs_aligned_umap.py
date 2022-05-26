@@ -36,6 +36,7 @@ import plydata as ply
 import plydata.tidy as ply_tdy
 import tqdm
 
+import umap
 from umap.aligned_umap import AlignedUMAP
 from umap.parametric_umap import ParametricUMAP, load_ParametricUMAP
 
@@ -391,3 +392,52 @@ print(g)
 # 1. Parametric UMAP works as expected. It creates clusters based on training data and uses this training data to map new data onto those clusters. Observed this when training on odd years but projecting even years onto that.
 # 2. Align umap might be better in terms of projections as it constructs individual umap models then aligns them overall.
 # 3. Not sure which model to choose but I believe that alignUMAP might be the better but will see as this project unfolds.
+
+# +
+pandemic_year_dict = dict()
+for word in tqdm.tqdm(unaligned_word_model_filter):
+    year = word.stem.split("_")[0]
+    model = Word2Vec.load(str(word))
+    neighbors, _ = zip(*model.wv.most_similar("thrombocytopenia", topn=25))
+    neighbors = sorted(list(neighbors) + ["thrombocytopenia"])
+    pandemic_year_dict[year] = dict()
+    pandemic_year_dict[year]["tokens"] = neighbors
+    pandemic_year_dict[year]["vectors"] = model.wv[neighbors]
+
+years = sorted(list(pandemic_year_dict.keys()), key=lambda x: int(x))
+tok_list = []
+year_label = []
+for year in years:
+    year_label += [year] * len(pandemic_year_dict[year]["tokens"])
+    tok_list += pandemic_year_dict[year]["tokens"]
+
+matrix_for_umap = np.vstack([pandemic_year_dict[year]["vectors"] for year in years])
+umap_model = umap.UMAP(
+    verbose=True,
+    metric="cosine",
+    random_state=100,
+    low_memory=True,
+    n_neighbors=25,
+    min_dist=0.99,
+    n_epochs=30,
+)
+print(matrix_for_umap)
+adjust_text_dict = {
+    "expand_points": (2, 2),
+    "arrowprops": {"arrowstyle": "->", "color": "red"},
+}
+embeddings = umap_model.fit_transform(matrix_for_umap)
+embed_df = pd.DataFrame(embeddings, columns=["umap1", "umap2"])
+(
+    embed_df
+    >> ply.define(tokens=tok_list, year=year_label)
+    >> ply_tdy.unite("token_label", "tokens", "year", sep="-", remove=False)
+    >> (
+        p9.ggplot(
+            p9.aes(x="umap1", y="umap2", fill="year", color="year", label="token_label")
+        )
+        + p9.geom_point()
+        + p9.geom_text()
+        + p9.theme(figure_size=(11, 8))
+    )
+)

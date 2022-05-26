@@ -64,8 +64,8 @@ for batch_directory in pubtator_abstract_batch:
 
 # # Grab Document Metadata
 
-if not Path("output/pmc_metadata.tsv.xz").exists():
-    with lzma.open("output/pmc_metadata.tsv.xz", "wt") as outfile:
+if not Path("output/pmc_metadata_full.tsv.xz").exists():
+    with lzma.open("output/pmc_metadata_full.tsv.xz", "wt") as outfile:
         writer = csv.DictWriter(
             outfile,
             fieldnames=[
@@ -122,7 +122,7 @@ if not Path("output/pmc_metadata.tsv.xz").exists():
 
 # # Analyze Abstract/Full Text Dataset
 
-pubtator_central_metadata_df = pd.read_csv("output/pmc_metadata.tsv.xz", sep="\t")
+pubtator_central_metadata_df = pd.read_csv("output/pmc_metadata_full.tsv.xz", sep="\t")
 print(pubtator_central_metadata_df.shape)
 pubtator_central_metadata_df.head()
 
