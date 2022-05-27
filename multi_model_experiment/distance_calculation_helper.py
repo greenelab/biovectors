@@ -41,12 +41,11 @@ def calculate_distances(
 
         # Gensim make large changes in >4.0
         # PMACS uses 3.8.3 so this version check is necessary
-        if gensim.__version == "3.8.3":
+        if gensim.__version__ == "3.8.3":
             if len(subset_tokens) > 0:
                 common_vocab = (
                     set(first_model.vocab.keys())
-                    & set(second_model.vocab.keys())
-                    & subset_tokens
+                    & set(second_model.vocab.keys()) - subset_tokens
                 )
             else:
                 common_vocab = set(first_model.vocab.keys()) & set(
@@ -55,15 +54,13 @@ def calculate_distances(
         else:
             if len(subset_tokens) > 0:
                 common_vocab = (
-                    set(first_model.vocab.keys())
-                    & set(second_model.vocab.keys())
-                    & subset_tokens
+                    set(first_model.key_to_index.keys())
+                    & set(second_model.key_to_index.keys()) - subset_tokens
                 )
             else:
-                common_vocab = set(first_model.vocab.keys()) & set(
-                    second_model.vocab.keys()
+                common_vocab = set(first_model.key_to_index.keys()) & set(
+                    second_model.key_to_index.keys()
                 )
-
         for token in tqdm.tqdm(common_vocab):
             first_model_neighbors, first_model_sims = zip(
                 *first_model.most_similar(token, topn=neighbors)

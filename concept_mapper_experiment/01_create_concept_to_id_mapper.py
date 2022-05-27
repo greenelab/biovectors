@@ -62,8 +62,8 @@ if not mesh_map_file.exists():
 
             for line in tqdm.tqdm(chem_infile):
                 line = line.strip()
-                if "MH = " in line:
-                    concept = line.replace("MH = ", "").lower()
+                if "NM = " in line:
+                    concept = line.replace("NM = ", "").lower()
 
                 if "UI = " in line:
                     concept_id = line.replace("UI = ", "").lower()
@@ -217,7 +217,7 @@ if not total_concept_file.exists():
         ]
     )
     total_concepts_df >> ply.call(
-        "to_csv", str(total_concept_file), sep="\t", index=False, compress="xz"
+        "to_csv", str(total_concept_file), sep="\t", index=False, compression="xz"
     )
 else:
     total_concepts_df = pd.read_csv(str(total_concept_file), sep="\t")

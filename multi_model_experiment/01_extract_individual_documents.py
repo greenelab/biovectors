@@ -64,7 +64,10 @@ for tar_obj in tarfiles:
 
                 pmid = doc_obj.xpath("passage/infon[@key='article-id_pmid']/text()")
 
-                with open(f"output/abstract_output/{year[0]}/{pmid[0]}.xml", "wb") as f:
+                with open(
+                    f"../pubtator_abstracts/individual_files/{year[0]}/{pmid[0]}.xml",
+                    "wb",
+                ) as f:
                     f.write(ET.tostring(doc_obj, pretty_print=True, encoding="utf-8"))
 
         except tarfile.ReadError:
